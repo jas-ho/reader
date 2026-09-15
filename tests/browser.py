@@ -178,6 +178,7 @@ class Site:
             "state.js",
             "export.js",
             "sync.js",
+            "locale.js",
             "styles.css",
             "theme.css",
         }:
@@ -528,6 +529,48 @@ def accessibility_regressions(browser):
     context.close()
 
 
+def german_reader(browser, screenshots):
+    context = browser.new_context(
+        viewport={"width": 320, "height": 800}, color_scheme="dark"
+    )
+    page = context.new_page()
+    site = Site(page, course())
+    site.config["language"] = "de"
+    site.config["sync"] = {"script": "test-sync.js", "site": "synthetic-reader"}
+    site.sync_script = "window.jashoSync = {build: 2, attach(config) { window.syncLanguage = config.language; }};"
+    site.open()
+    expect(page.locator("html")).to_have_attribute("lang", "de")
+    page.wait_for_function("window.syncLanguage === 'de'")
+    expect(page.locator("#count")).to_have_text("2 offen")
+    expect(page.get_by_role("button", name="Export aller Notizen")).to_be_visible()
+    card = page.locator("article.item").first
+    expect(card.locator(".why .lab")).to_have_text("Warum dieser Text")
+    card.locator(".closeout > summary").click()
+    card.locator(".recall").fill("Meine Erinnerung")
+    card.locator(".notetext").fill("Eine deutsche Notiz")
+    quiz = card.locator(".quiz").first
+    quiz.locator("summary").click()
+    quiz.locator('[data-choice="finite"]').first.click()
+    expect(quiz.locator(".rat").first).to_contain_text("Richtig.")
+    expect(quiz.locator(".qscore")).to_have_text("1/1 richtig")
+    card.locator(".notetext").blur()
+    page.reload()
+    expect(card.locator(".notetext")).to_have_value("Eine deutsche Notiz")
+    page.locator("#exportBtn").click()
+    expect(page.locator("#handoffTitle")).to_have_text("Export aller Notizen")
+    text = page.locator("#handoffText").input_value()
+    assert "Warte auf meine Frage" in text and "Eine deutsche Notiz" in text
+    assert "https://example.org/reading" in text
+    assert download_text(page) == text
+    page.locator("#handoffClose").click()
+    check_layout(page, 320)
+    if screenshots:
+        screenshots.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(screenshots / "german-320.png"), full_page=True)
+    site.healthy()
+    context.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
@@ -540,5 +583,6 @@ if __name__ == "__main__":
         incompatible_sync_stays_local(browser)
         immutable_release_root(browser)
         accessibility_regressions(browser)
+        german_reader(browser, args.screenshots)
         browser.close()
     print("Synthetic domain, isolation, ordering, export and mobile acceptance passed")

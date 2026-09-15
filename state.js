@@ -1,3 +1,4 @@
+import {translator} from './locale.js';
 import {isRecord, quizKey} from './content.js';
 export {quizKey};
 export const emptyState = () => ({items: {}, notes: {}, recall: {}, freeform: '', quiz: {}});
@@ -34,14 +35,15 @@ export function createCodec(mapping = {}) {
   };
 }
 
-export function readState(storage, key) {
+export function readState(storage, key, language = 'en') {
+  const t = translator(language);
   let raw;
-  try { raw = storage.getItem(key); } catch { return {state: emptyState(), warning: 'Browser storage is unavailable. Download your notes before closing this page.'}; }
+  try { raw = storage.getItem(key); } catch { return {state: emptyState(), warning: t('storageUnavailable')}; }
   if (raw === null) return {state: emptyState(), warning: ''};
   let state;
-  try { state = JSON.parse(raw); } catch { throw Error(`Saved state in ${key} is not valid JSON and has been left untouched. Recover this entry in this browser's developer tools under Local Storage before resetting it.`); }
-  if (!isRecord(state) || ['items', 'notes', 'recall', 'quiz'].some(field => state[field] !== undefined && !isRecord(state[field])) || (state.freeform !== undefined && typeof state.freeform !== 'string')) throw Error(`Saved state in ${key} has an unsupported shape and has been left untouched. Recover this entry in this browser's developer tools under Local Storage before resetting it.`);
-  for (const field of ['notes', 'recall']) if (Object.values(state[field] || {}).some(value => typeof value !== 'string')) throw Error(`Saved state in ${key}.${field} contains non-text notes. It has been left untouched.`);
+  try { state = JSON.parse(raw); } catch { throw Error(t('corruptState', {key})); }
+  if (!isRecord(state) || ['items', 'notes', 'recall', 'quiz'].some(field => state[field] !== undefined && !isRecord(state[field])) || (state.freeform !== undefined && typeof state.freeform !== 'string')) throw Error(t('unsupportedState', {key}));
+  for (const field of ['notes', 'recall']) if (Object.values(state[field] || {}).some(value => typeof value !== 'string')) throw Error(t('nonTextState', {key, field}));
   return {state: {...emptyState(), ...state}, warning: ''};
 }
 

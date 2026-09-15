@@ -66,7 +66,7 @@ mkdir ../my-reading-list
 cp examples/book-club/list.json ../my-reading-list/list.json
 ```
 
-Create `../my-reading-list/config.json` containing `{"content":"list.json"}`. Edit the copied title, list ID and readings. For a theme override, add `"theme":"custom-theme.css"` to that config and create the CSS file in the instance folder. Paths are relative to this config; use separate names from reader assets such as `theme.css`.
+Create `../my-reading-list/config.json` containing `{"content":"list.json"}`. Edit the copied title, list ID and readings. Add `"language":"de"` to the config for German controls, messages and Markdown exports; English is the default. Authored reading text stays as written. For a theme override, add `"theme":"custom-theme.css"` to that config and create the CSS file in the instance folder. Paths are relative to this config; use separate names from reader assets such as `theme.css`.
 
 Assemble a new static folder, then preview it. This separate-instance workflow requires Node.js 22 or newer:
 
@@ -113,6 +113,7 @@ Sync is off by default and requires a separately hosted compatible service and b
 
 | File                           | Responsibility                                               |
 | ------------------------------ | ------------------------------------------------------------ |
+| `locale.js`                    | English/German UI and export wording                         |
 | `content.js`                   | Validate content/configuration and find items/links          |
 | `render.js`                    | Build the page from content using safe DOM operations        |
 | `reader.js`                    | Load files and wire reading interactions                     |

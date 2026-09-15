@@ -1,3 +1,4 @@
+import {translator, translateShell} from './locale.js';
 import {allItems, validateList, validateConfig, validateCompatibility} from './content.js';
 import {createCodec, readState, quizKey, quizScore, itemScore} from './state.js';
 import {renderList, element, button} from './render.js';
@@ -6,6 +7,8 @@ import {buildExport} from './export.js';
 // Resolve everything beside this module, not the current URL: a production root
 // index can point at an immutable release and all its data stays on that release.
 const baseURL = new URL('./', import.meta.url);
+let language = document.documentElement.lang === 'de' ? 'de' : 'en';
+let t = translator(language);
 const $ = selector => document.querySelector(selector);
 async function readJSON(path) {
   const response = await fetch(new URL(path, baseURL));
@@ -16,28 +19,29 @@ function requireValid(errors, file) { if (errors.length) throw Error(`${file}\n$
 
 async function boot() {
   const config = await readJSON('config.json'); requireValid(validateConfig(config), 'config.json');
+  language = config.language || 'en'; t = translator(language); translateShell(document, language);
   const list = await readJSON(config.content); requireValid(validateList(list), config.content);
   const mapping = config.compatibility ? await readJSON(config.compatibility) : {};
   requireValid(validateCompatibility(mapping, list), config.compatibility || 'compatibility');
   let storage;
   try { storage = window.localStorage; } catch { /* readState reports unavailable storage */ }
   const storageKey = config.storageKey || `reader:${list.id}`;
-  const loaded = readState(storage, storageKey);
+  const loaded = readState(storage, storageKey, language);
   const codec = createCodec(mapping);
   if (config.theme) {
     const theme = element('link'); theme.rel = 'stylesheet'; theme.href = new URL(config.theme, baseURL).href;
-    theme.onerror = () => { $('#theme-status').textContent = 'The custom theme could not load. The default theme is active.'; };
+    theme.onerror = () => { $('#theme-status').textContent = t('themeFailed'); };
     document.head.append(theme);
   }
-  renderList(list);
+  renderList(list, language);
   $('#app').hidden = false; $('#bar').hidden = false; $('#startup-error').hidden = true;
   if (loaded.warning) $('#storage-status').textContent = loaded.warning;
   const page = startReader(list, codec.decode(loaded.state), codec, storage, storageKey);
   if (config.sync) {
-    $('#sync-status').textContent = 'Sync is optional. When enabled, notes also live on the sync server under your private link.';
+    $('#sync-status').textContent = t('syncHelp');
     try {
       const {attachSync} = await import('./sync.js');
-      await attachSync(config.sync, page, $('#syncMount'), baseURL);
+      await attachSync(config.sync, page, $('#syncMount'), baseURL, language);
     } catch (error) { $('#sync-status').textContent = error.message; }
   }
 }
@@ -48,7 +52,7 @@ function startReader(list, initialState, codec, storage, storageKey) {
   const finePointer = matchMedia('(hover:hover) and (pointer:fine)').matches;
   function persist() {
     try { storage.setItem(storageKey, JSON.stringify(codec.encode(state))); }
-    catch { $('#storage-status').textContent = 'Your notes could not be saved in this browser. Download them before closing the page.'; }
+    catch { $('#storage-status').textContent = t('saveFailed'); }
   }
   function saveNow() {
     clearTimeout(timer); timer = null; persist();
@@ -68,14 +72,14 @@ function startReader(list, initialState, codec, storage, storageKey) {
     const item = items.find(item => item.id === node.dataset.id);
     if (item) {
       node.querySelector('.drop').setAttribute('aria-pressed', String(value === 'dropped'));
-      node.querySelector('.box').setAttribute('aria-label', `Mark ${item.title} done${value === 'dropped' ? ' (not doing this)' : ''}`);
+      node.querySelector('.box').setAttribute('aria-label', t('markDone', {title: item.title}) + (value === 'dropped' ? t('droppedLabel') : ''));
     }
   }
   function paintDrawer(item) {
     const card = cards.get(item.id), tokens = [], score = itemScore(item, state);
-    if (state.recall[item.id]?.trim()) tokens.push('recall');
-    if (state.notes[item.id]?.trim()) tokens.push('note');
-    if (score.answered) tokens.push(`quiz ${score.correct}/${score.answered}`);
+    if (state.recall[item.id]?.trim()) tokens.push(t('recallToken'));
+    if (state.notes[item.id]?.trim()) tokens.push(t('noteToken'));
+    if (score.answered) tokens.push(t('quizToken', score));
     card.querySelector('.sumtxt').textContent = tokens.length ? `· ${tokens.join(' · ')}` : '';
     card.querySelector('.closeout').dataset.filled = tokens.length ? '1' : '0';
     for (const paint of quizPainters.get(item.id) || []) paint();
@@ -115,8 +119,8 @@ function startReader(list, initialState, codec, storage, storageKey) {
     const details = element('details', 'quiz'), summary = element('summary'), scoreLabel = element('span', 'qscore');
     scoreLabel.setAttribute('aria-live', 'polite');
     summary.append(element('span', '', quiz.title), scoreLabel); details.append(summary);
-    const gate = element('div', 'gate'), skip = button('qreset', 'show the quiz without recall');
-    gate.append(element('span', '', 'Write your recall first, or'), skip);
+    const gate = element('div', 'gate'), skip = button('qreset', t('skipRecall'));
+    gate.append(element('span', '', t('recallGate')), skip);
     skip.addEventListener('click', () => { skipped.add(item.id); paintDrawer(item); summary.focus(); });
     const body = element('div', 'qbody'), painters = [];
     quiz.questions.forEach((question, index) => {
@@ -141,17 +145,17 @@ function startReader(list, initialState, codec, storage, storageKey) {
           option.classList.toggle('wrong', answered && id === chosen && id !== question.answer);
         });
         const answer = question.choices.find(choice => choice.id === question.answer);
-        const resultText = answered ? `${chosen === question.answer ? 'Correct.' : `Incorrect. Correct answer: ${answer.text}.`}${question.explanation ? ' ' + question.explanation : ''}` : '';
+        const resultText = answered ? `${chosen === question.answer ? t('correct') : t('incorrect', {answer: answer.text})}${question.explanation ? ' ' + question.explanation : ''}` : '';
         if (result.textContent !== resultText) result.textContent = resultText;
       });
     });
-    const reset = button('qreset', 'Reset this quiz');
+    const reset = button('qreset', t('resetQuiz'));
     reset.addEventListener('click', () => { for (const question of quiz.questions) codec.clearAnswer(state, quizKey(quiz, question)); save(); paintDrawer(item); summary.focus(); });
     body.append(reset); details.append(gate, body); card.querySelector('.qslot').append(details);
     function paint() {
       const score = quizScore(quiz, state), gated = !state.recall[item.id]?.trim() && !score.answered && !skipped.has(item.id);
       gate.hidden = !gated; body.hidden = gated;
-      const scoreText = score.answered ? `${score.correct}/${score.answered} right` : `${score.total} questions`;
+      const scoreText = score.answered ? t('score', score) : t('questions', {count: score.total});
       if (scoreLabel.textContent !== scoreText) scoreLabel.textContent = scoreText;
       for (const painter of painters) painter();
     }
@@ -173,12 +177,12 @@ function startReader(list, initialState, codec, storage, storageKey) {
   });
   function renderProgress() {
     const open = items.filter(item => !['done', 'dropped'].includes(state.items[item.id]));
-    const countText = open.length ? `${open.length} left` : 'All done';
+    const countText = open.length ? t('left', {count: open.length}) : t('allDone');
     if ($('#count').textContent !== countText) $('#count').textContent = countText;
     nextItem = open[0];
     jump.hidden = !nextItem;
     jump.replaceChildren();
-    if (nextItem) jump.append('next: ', element('span', 't', nextItem.title));
+    if (nextItem) jump.append(t('next'), element('span', 't', nextItem.title));
   }
   function paintAll() {
     for (const item of items) {
@@ -202,9 +206,9 @@ function startReader(list, initialState, codec, storage, storageKey) {
 
   const handoff = $('#handoff'), text = $('#handoffText'); let snapshot = null;
   function openHandoff(trigger, id = null) {
-    saveNow(); snapshot = {trigger, id, text: buildExport(list, state, id)}; text.value = snapshot.text;
-    $('#handoffTitle').textContent = id ? 'Use in your chatbot' : 'Export all notes';
-    $('#copyMsg').textContent = finePointer ? 'Press Cmd/Ctrl+C to copy the selected text, then paste into your chatbot.' : 'Touch and hold the text, choose Select All, then Copy. Or download a file below.';
+    saveNow(); snapshot = {trigger, id, text: buildExport(list, state, id, language)}; text.value = snapshot.text;
+    $('#handoffTitle').textContent = id ? t('handoff') : t('exportAll');
+    $('#copyMsg').textContent = finePointer ? t('copyDesktop') : t('copyTouch');
     handoff.showModal(); text.focus(); text.select(); text.scrollTop = 0;
   }
   $('#exportBtn').addEventListener('click', event => openHandoff(event.currentTarget));
@@ -222,6 +226,6 @@ function startReader(list, initialState, codec, storage, storageKey) {
 boot().catch(error => {
   $('#startup-error').setAttribute('role', 'alert');
   $('#startup-error').hidden = false;
-  $('#startup-error').textContent = `Could not open the reading list. ${error.message}`;
+  $('#startup-error').textContent = t('openFailed', {detail: error.message});
   console.error(error);
 });

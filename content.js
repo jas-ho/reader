@@ -95,11 +95,12 @@ export function safeRelativePath(path) {
 export function validateConfig(config) {
   if (!isRecord(config)) return ['config: expected an object'];
   const errors = [];
-  for (const field of Object.keys(config)) if (!['content', 'theme', 'compatibility', 'storageKey', 'sync'].includes(field)) errors.push(`config.${field}: unknown field`);
+  for (const field of Object.keys(config)) if (!['content', 'language', 'theme', 'compatibility', 'storageKey', 'sync'].includes(field)) errors.push(`config.${field}: unknown field`);
   for (const field of ['content', 'theme', 'compatibility']) {
     if (field !== 'content' && config[field] === undefined) continue;
     if (!safeRelativePath(config[field])) errors.push(`config.${field}: expected a relative file path without traversal`);
   }
+  if (config.language !== undefined && !['en', 'de'].includes(config.language)) errors.push('config.language: expected en or de');
   if (config.storageKey !== undefined && (typeof config.storageKey !== 'string' || !config.storageKey.trim())) errors.push('config.storageKey: expected a nonempty string');
   if (config.sync != null) {
     if (!isRecord(config.sync)) errors.push('config.sync: expected an object or null');

@@ -44,3 +44,7 @@ A new question type needs content validation, rendering, answer IDs, scoring and
 Keep application changes in a Git fork and the reading list in its own folder or repository. After merging upstream changes, review your modified functions and run the tests. Use the README's [pin and upgrade workflow](../README.md#pin-and-update-the-reader) to test and deploy the new version.
 
 Keep content IDs when changing the layout. Moving to another origin requires a separate saved-state migration.
+
+## Interface language
+
+Set `language` in the instance config to `en` or `de`. This changes the controls, accessibility labels, feedback and export instructions; it does not translate authored content or change saved-state IDs. `locale.js` contains the plain string tables. Add a language there, to config validation and to the initial language selection in `reader.js`, then check translation keys and placeholders with `npm test`. Mark plain-text shell elements with `data-i18n` and existing accessibility labels with `data-i18n-label`; runtime and assembly use the same table. The separately hosted sync client receives the language through its adapter and provides its own translations and supported-language selection; update those too when adding a language.

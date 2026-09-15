@@ -57,6 +57,7 @@ Keep generated IDs on subsequent edits. Review ID changes before publishing.
 
 | Property          | Meaning / default                                                             |
 | ----------------- | ----------------------------------------------------------------------------- |
+| `language`        | `en` (default) or `de`; interface, HTML language and Markdown export          |
 | `content`         | Relative path to the list JSON                                                |
 | `theme`           | Optional relative CSS file, loaded after the default theme                    |
 | `storageKey`      | Optional explicit browser storage key; normally `reader:<list-id>`            |

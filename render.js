@@ -1,3 +1,5 @@
+import {translator} from './locale.js';
+
 // Plain DOM construction: authored strings are text, never executable HTML.
 export function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -24,16 +26,17 @@ function field(item, className, label, prompt) {
   input.id = `${className}-${item.id}`; input.rows = 3; input.placeholder = prompt;
   lab.htmlFor = input.id; wrap.append(lab, input); return wrap;
 }
-export function renderItem(item, list) {
+export function renderItem(item, list, language = 'en') {
+  const t = translator(language);
   const article = element('article', 'item'); article.dataset.id = item.id;
   const head = element('div', 'head'), title = element('h3', '', item.title);
   if (item.byline) title.append(element('span', 'src', item.byline));
-  head.append(button('box', '✓', `Mark ${item.title} done`), title);
+  head.append(button('box', '✓', t('markDone', {title: item.title})), title);
   const body = element('div', 'body');
   if (item.description) body.append(element('p', 'what prose', item.description));
   if (item.links?.length) body.append(renderLinks(item.links));
   if (item.why) {
-    const why = element('div', 'why'); why.append(element('span', 'lab', 'Why this reading'), element('div', 'prose', item.why)); body.append(why);
+    const why = element('div', 'why'); why.append(element('span', 'lab', t('why')), element('div', 'prose', item.why)); body.append(why);
   }
   if (item.effort?.length) {
     const effort = element('div', 'effort');
@@ -47,22 +50,22 @@ export function renderItem(item, list) {
       const text = element('div', 'txt'); text.append(element('span', '', part.title));
       if (part.description) text.append(element('p', 'prose', part.description));
       if (part.links?.length) text.append(renderLinks(part.links));
-      li.append(button('box', '✓', `Mark ${part.title} done`), text); ul.append(li);
+      li.append(button('box', '✓', t('markDone', {title: part.title})), text); ul.append(li);
     }
     body.append(ul);
   }
-  body.append(button('drop', 'Not doing this'));
+  body.append(button('drop', t('drop')));
   const drawer = element('details', 'closeout'), summary = element('summary');
-  summary.append(element('span', '', 'Recall & note'), element('span', 'sumtxt'));
-  const tools = element('div', 'tools'); tools.append(button('copy1', 'Use in your chatbot'));
+  summary.append(element('span', '', t('recallAndNote')), element('span', 'sumtxt'));
+  const tools = element('div', 'tools'); tools.append(button('copy1', t('handoff')));
   drawer.append(summary,
-    field(item, 'recall', 'Recall', list.recallPrompt || 'Without looking back: what would you explain or question?'),
-    field(item, 'notetext', 'Note', list.notePrompt || 'A claim, a connection, a question, or a loose end.'),
+    field(item, 'recall', t('recall'), list.recallPrompt || t('recallPrompt')),
+    field(item, 'notetext', t('note'), list.notePrompt || t('notePrompt')),
     element('div', 'qslot'), tools);
   article.append(head, body, drawer);
   return article;
 }
-export function renderList(list) {
+export function renderList(list, language = 'en') {
   document.title = list.title;
   document.querySelector('meta[name="description"]').content = list.description || list.title;
   document.querySelector('h1').textContent = list.title;
@@ -72,7 +75,7 @@ export function renderList(list) {
     const bucket = element('section', 'bucket'); bucket.id = `section-${section.id}`;
     bucket.append(element('h2', '', section.title));
     if (section.description) bucket.append(element('p', 'why-bucket prose', section.description));
-    for (const item of section.items) bucket.append(renderItem(item, list));
+    for (const item of section.items) bucket.append(renderItem(item, list, language));
     main.append(bucket);
   }
   document.getElementById('curator-footer').textContent = list.footer || '';

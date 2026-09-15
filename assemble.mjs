@@ -6,9 +6,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateList, validateConfig, validateCompatibility } from "./content.js";
 
+import { translateShellHTML } from "./locale.js";
+
 export const CORE_ASSETS = [
   "index.html", "reader.js", "content.js", "render.js", "state.js",
-  "export.js", "sync.js", "styles.css", "theme.css", "LICENSE",
+  "export.js", "sync.js", "locale.js", "styles.css", "theme.css", "LICENSE",
 ];
 const ENGINE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -85,6 +87,7 @@ export async function assemble({ instanceDir, outDir, engineDir = ENGINE }) {
   const files = new Map();
   for (const name of CORE_ASSETS) files.set(name, await safeFile(engine, name));
   files.set("config.json", configBytes);
+  files.set("index.html", Buffer.from(translateShellHTML(files.get("index.html").toString("utf8"), config.language)));
 
   const references = [config.content, config.theme, config.compatibility].filter(Boolean).map(normalizedReference);
   for (const name of references) {
