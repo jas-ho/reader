@@ -1,46 +1,46 @@
 # Extend the reader
 
-Most new domains only change content. When a domain needs a new capability, ordinary JavaScript and CSS are the extension surface. There is no plugin registry or hidden build pipeline. Keep authored content separate from personal state.
+Edit JavaScript for behavior and CSS for appearance. Keep reading-list content in your instance folder.
 
 ## Change the theme
 
 `styles.css` controls layout and components. `theme.css` defines the default CSS custom properties, including colors and fonts. In your instance, create `custom-theme.css` and set `"theme":"custom-theme.css"` in `config.json`. It loads after the defaults. The [course override](../examples/course/theme.css) is a small working example.
 
-Override actual properties from `theme.css`. Provide dark-mode equivalents for colors: use both `@media (prefers-color-scheme: dark)` with `:root:not([data-theme="light"])` and the explicit `:root[data-theme="dark"]` selector. Keep fonts local/system unless you deliberately add a dependency. The assembler does not collect assets referenced from CSS.
+Override properties from `theme.css`. Include dark-mode colors using both `@media (prefers-color-scheme: dark)` with `:root:not([data-theme="light"])` and `:root[data-theme="dark"]`. The assembler does not copy images or fonts referenced from CSS; use system fonts or host these assets separately.
 
-Preview long titles and notes at a narrow phone width as well as desktop. Check keyboard focus, link/button contrast, correct/incorrect quiz feedback and both color themes. For a new layout, edit component styles in `styles.css` rather than trying to express structure through dozens of configuration options.
+Preview long titles and notes at phone and desktop widths. Check keyboard focus, contrast and quiz feedback in both color themes. Edit `styles.css` to change the layout.
 
-The default follows the system color preference. The `data-theme` selectors are hooks for an explicit theme toggle you may add; the reader does not currently set that attribute.
+The reader follows the system color preference. The `data-theme` selectors support a toggle if you add one; the reader does not set that attribute itself.
 
 ## Add an authored field: evidence type
 
-Suppose a research list needs an optional label indicating whether a reading is an experiment, review or argument. Add a simple text field first. Avoid an extensibility system for a single field.
+To label readings as experiments, reviews or arguments:
 
 1. In your instance's item, add `"evidenceType":"Literature review"`.
 2. In `content.js`, find the item validator inside `validateList`. Add `evidenceType` to its allowed field list and optional string validation. It must remain optional so existing lists still load. Unknown-field rejection should stay enabled for other properties.
-3. In `render.js`, find `renderItem`. Add a paragraph or badge when `item.evidenceType` is present. Use `textContent` or the existing DOM helper, never assign authored text to `innerHTML`.
-4. In `export.js`, find `itemBlock`. Add the same field to curator context, for example `Evidence type (curator): Literature review`. Exporting directly from data means a layout change cannot silently remove this information.
+3. In `render.js`, find `renderItem`. Add a paragraph or badge when `item.evidenceType` is present. Use `textContent` or the existing DOM helper to display it safely.
+4. In `export.js`, find `itemBlock`. Include the field in the exported context, for example `Evidence type (curator): Literature review`.
 5. Extend the relevant validation/export tests in `tests/` with a valid string, a wrong type and an omitted field. Include text containing `<` and `&` in a browser fixture to confirm it stays text. Run `npm test`, validate a list, and preview/export it.
-6. Document the field in the model reference and add one synthetic example. Keep real curricula in the separate instance folder.
+6. Document the field in the model reference and add it to an example.
 
-Those changes are intentionally visible: validation defines the contract, rendering defines presentation, and export defines what another chatbot receives. A display-only field needs no personal-state migration. Introducing a required field or changing existing field meaning requires an explicit schema-version and migration decision; additive optional fields do not automatically imply a new version.
+A display-only field needs no saved-state migration. Adding a required field or changing an existing field's meaning requires a schema-version and migration decision. An optional field can keep the current version.
 
 ## Add functionality
 
-For example, a “revisit later” action needs more thought than a new button:
+For a “revisit later” action:
 
-- Define whether it is authored metadata or a reader's private choice. Reader choices belong in `state.js`, not the content file.
-- Read the existing interactions in `reader.js` and their rendering in `render.js`. Extend a named function rather than adding a parallel initialization path.
+- Store the reader's choice in `state.js`.
+- Add the control in `render.js` and its event handler in `reader.js`.
 - Decide how it interacts with done/dropped progress and next-item navigation.
 - Define persistence defaults, behavior when older saved state lacks the field, and whether older versions can preserve it.
-- If sync is enabled, update its flatten/unflatten boundary deliberately and test resets/deletions as well as saving. Local-only tabs use last-write-wins snapshots; adding a button does not provide concurrent merge semantics.
-- Decide whether and how the choice belongs in `export.js`. Do not silently expose private state outside the reader.
+- If sync is enabled, update `flatten` and `unflatten` in `state.js`. Test saving, resets and deletions. Local-only tabs use last-write-wins snapshots; test concurrent edits if the feature needs merging.
+- Decide whether to include the choice in `export.js`.
 - Test keyboard/touch interaction, a reload, existing stored data and exports before publishing.
 
-A new question type similarly needs a clear content contract, rendering, answer validation, storage identity and score/export semantics. Build the actual new type when needed; do not introduce a generic exercise engine in anticipation.
+A new question type needs content validation, rendering, answer IDs, scoring and export handling.
 
 ## Keep changes easy to update
 
-Maintain your reader modifications in an ordinary Git fork and your curriculum in a separate folder/repository. Pin the reader commit in the instance's `reader-version`. When adopting upstream changes, inspect the small functions you modified and run your instance's validation and acceptance checks. Pinned assembly requires a clean working tree, including untracked files; ignored temporary files do not count. A commit SHA cannot describe uncommitted edits.
+Keep application changes in a Git fork and the reading list in its own folder or repository. After merging upstream changes, review your modified functions and run the tests. Use the README's [pin and upgrade workflow](../README.md#pin-and-update-the-reader) to test and deploy the new version.
 
-For deployments, package a fresh directory and switch the complete version together. Keep prior release directories for rollback and old tabs. Content IDs should outlive layout changes, and changing a host/origin requires a separate saved-state migration decision.
+Keep content IDs when changing the layout. Moving to another origin requires a separate saved-state migration.

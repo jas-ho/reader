@@ -1,8 +1,8 @@
 # Reader
 
-A small static reading companion you can understand and adapt. Put your reading list in JSON; readers can track progress, write recall and notes, answer optional quizzes, and take their context to another chatbot. No account, backend, package installation or compilation is required to use the default reader.
+Static reading lists with progress tracking, recall, notes and optional quizzes. Readers can copy or download their context for a chatbot. Runs on a static web server.
 
-The repository contains only synthetic examples. Invented book titles and `example.org` links demonstrate the structure; replace them with your own material.
+The examples use fictional book titles and placeholder `example.org` links. Replace them with your own material.
 
 ## Try it
 
@@ -14,7 +14,7 @@ python3 -m http.server 8000
 
 Open <http://localhost:8000>. Python 3 is needed for this preview command; any static web server works. Double-clicking `index.html` does not work because browsers restrict loading JSON and JavaScript modules from local files. Stop the server with Ctrl-C.
 
-Edit `examples/book-club/list.json`, refresh, and see the change. Give a new reading domain a new list `id` before entering notes. The default example has a book without a source URL, related links, checkable chapters and no quizzes. To try quizzes, change `config.json` to:
+Edit `examples/book-club/list.json` and refresh. Give a new list a new `id` before entering notes. To try the course example with quizzes, change `config.json` to:
 
 ```json
 {
@@ -23,7 +23,7 @@ Edit `examples/book-club/list.json`, refresh, and see the change. Give a new rea
 }
 ```
 
-The [model reference](docs/model.md) explains every field. The [extension guide](docs/extending.md) shows how to change the theme, add metadata or change functionality.
+See the [field reference](docs/model.md) and [guide to changing themes and functionality](docs/extending.md).
 
 ## Validate changes
 
@@ -34,7 +34,7 @@ node validate.mjs examples/book-club/list.json
 npm test
 ```
 
-Validation exits successfully for a valid list and reports the field path for errors. JSON does not allow comments or trailing commas. Text is plain text: use `\n\n` inside a JSON string for a paragraph break, and explicit labeled link records for sources. HTML and Markdown formatting are not interpreted.
+Validation reports errors by field path. JSON does not allow comments or trailing commas. Use `\n\n` inside a string for a paragraph break and labeled link records for sources. HTML and Markdown formatting display as text.
 
 ### Optional browser checks
 
@@ -45,11 +45,11 @@ uv run --with playwright playwright install chromium
 uv run tests/browser.py --screenshots tmp/browser-screenshots
 ```
 
-The script declares its Python dependencies, which `uv` installs automatically. Playwright may require additional system libraries on Linux. Tests use isolated browser storage and intercept every request with synthetic fixtures; they exercise desktop/mobile layouts, downloads, state isolation, reordering, invalid content, optional sync failure and immutable release hosting. The screenshots flag is optional.
+`uv` installs the script's Python dependencies. Playwright may need additional system libraries on Linux. Tests use isolated storage and intercepted requests with test data. They cover mobile/desktop layouts, downloads, saved state, error handling and release hosting. The screenshots flag is optional.
 
 ## Keep your reading list separate
 
-For a real list, keep your content in its own folder or repository. This makes updating the reader independent of editing your curriculum.
+Keep your content in a separate folder or repository so you can update the application independently. This folder is called an instance:
 
 ```text
 my-reading-list/
@@ -59,7 +59,7 @@ my-reading-list/
 └── reader-version      optional pinned reader commit
 ```
 
-Start by copying the small example:
+Copy the example:
 
 ```sh
 mkdir ../my-reading-list
@@ -75,11 +75,11 @@ node assemble.mjs --instance ../my-reading-list --out ../reader-preview
 python3 -m http.server 8001 --directory ../reader-preview
 ```
 
-Open <http://localhost:8001>. Output must be a **new folder outside both the reader and instance folders**, with an existing parent directory. For another preview, choose another output name. Assembly validates first, then copies only core assets, the MIT license, config and its referenced content/theme/compatibility files. It never copies the whole instance directory. Unsafe paths, symlinks, asset collisions and existing output folders are rejected.
+Open <http://localhost:8001>. Output must be a new folder outside both the reader and instance folders, with an existing parent directory. For another preview, choose another output name. Assembly validates and copies the application, license, config and referenced content/theme/compatibility files. It rejects unsafe paths, symlinks, filenames that conflict with application files, and existing output folders.
 
-Upload the **entire assembled folder** to a static host, including its subfolders. Hosting under a path such as `/book-club/` works. Assembly packages files; it does not compile them. Content and theme changes require a new assembly before publishing.
+Upload the entire assembled folder to a static host, including its subfolders. Hosting under a path such as `/book-club/` works. Reassemble after content or theme changes.
 
-Publishing the assembled folder makes its reading list and source links public. Keep private notes and secrets out of your authored content and configuration. Files merely being absent from the public reader repository does not make a published instance private.
+Publishing this folder makes the reading list and source links public. Keep private notes and credentials out of its content and configuration.
 
 ### Pin and update the reader
 
@@ -89,23 +89,25 @@ Record a known reader commit from this checkout:
 git rev-parse HEAD > ../my-reading-list/reader-version
 ```
 
-On another machine, check out that full commit in the reader repository before assembling. `reader-version` is a full 40-character SHA; assembly refuses a different checkout HEAD and records the revision in `release.json` without local paths. Pinned assembly requires a clean reader working tree, including untracked files (ignored temporary files do not count). Commit or set aside local changes first: a commit SHA cannot represent uncommitted edits. Unpinned previews are allowed from modified checkouts, but their `release.json` records `readerRevision: null`; downloaded copies and reader folders nested inside a different Git repository also have no reader revision.
+`reader-version` holds the full 40-character commit SHA. Assembly requires that commit and a clean working tree, including untracked files; ignored files do not count. Check out the pinned commit and commit or set aside local changes before assembling.
 
-To upgrade, copy your instance to a candidate folder, check out a newer reader commit, and update the candidate's `reader-version` to that commit. Validate the candidate, assemble it into a new directory and preview it with synthetic progress before adopting its pin. Keep the previous instance pin and deployed release for rollback. Review release changes before updating a list with real saved state. Keep old deployed release files available for already-open tabs; switching versions should publish a complete, internally consistent directory rather than overwriting individual modules in place.
+`release.json` records the reader revision. Unpinned previews from modified checkouts are allowed but record `readerRevision: null`, as do downloaded copies and reader folders nested inside another Git repository.
+
+To upgrade, copy your instance, check out a newer reader commit and update the copy's `reader-version`. Validate, assemble and preview it with test notes and progress before publishing. Deploy the complete version together. Keep the previous pin and release files for rollback and tabs still using them.
 
 ## Progress and privacy
 
 - Personal progress, recall, notes, scratch text and quiz answers live in this browser's storage, separate from authored content. Clearing browser storage removes them. A new origin, port or browser has separate storage.
-- A list ID selects `reader:<list-id>` by default. Reusing an ID on the same origin shares state; changing it starts a separate list. Keep IDs when rearranging existing material, and change them when creating a new domain.
-- Keep item, part, quiz, question and choice IDs stable after use. Reordering is safe; giving an unrelated replacement the same ID reuses the earlier progress or answer. See [editing rules](docs/model.md#editing-a-list-with-saved-progress).
+- A list ID selects `reader:<list-id>` by default. Reusing an ID on the same origin shares state; changing it starts a separate list.
+- Keep item, part, quiz, question and choice IDs when reordering. Use new IDs for unrelated replacements. See [editing rules](docs/model.md#editing-a-list-with-saved-progress).
 - Local-only concurrent tabs use last-write-wins snapshots, not automatic merging. Avoid editing notes for the same list in multiple tabs at once.
 - If saved data is corrupt or has an unsupported shape, startup stops and leaves it untouched. The error names the entry to recover in your browser's developer tools under Local Storage. Ordinary list/config errors also leave notes untouched.
-- **Use in your chatbot** prepares selectable text and a Markdown download. It includes source links, curator context and your recorded notes; no article cache or chatbot request is involved. Copy it yourself or attach the file. The receiving chatbot is instructed to wait for your question and acknowledge sources it cannot access.
-- **Export all notes** covers the current list. State for removed items remains stored, but those items are omitted from this export. Markdown is a readable handoff, **not a complete or importable state backup**.
+- **Use in your chatbot** provides source links, reading instructions and your notes as selectable text or a Markdown download. Paste the text into a chatbot or attach the file. The prompt asks it to wait for your question and acknowledge inaccessible sources.
+- **Export all notes** covers the current list. Removed items remain in browser storage but are omitted from this export. The Markdown file cannot be imported to restore saved state.
 
 ### Optional sync
 
-The default makes no sync requests. Cross-device sync needs a separately operated compatible service and browser client; it is not supplied by this repository. `sync.js` is the small integration boundary. See [configuration](docs/model.md#configuration) for the opt-in fields. Local use remains available when sync is unavailable. Choose a distinct sync site for each list, independently of the local storage key. Never put access credentials in public configuration.
+Sync is off by default and requires a separately hosted compatible service and browser client. Configure it through [these fields](docs/model.md#configuration); the adapter is in `sync.js`. Choose a distinct sync site for each list. Local use continues if sync fails.
 
 ## Source map
 
@@ -120,4 +122,4 @@ The default makes no sync requests. Cross-device sync needs a separately operate
 | `styles.css`, `theme.css`      | Layout/components and editable visual defaults               |
 | `validate.mjs`, `assemble.mjs` | Check content and package an instance                        |
 
-The [license](LICENSE) is MIT, including the synthetic examples. Linked source material retains its owners' rights; the code license does not grant rights to outside readings.
+The code and examples use the [MIT license](LICENSE). Linked readings retain their owners' rights.

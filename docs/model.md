@@ -1,8 +1,8 @@
 # Content and configuration
 
-A list is ordinary UTF-8 JSON. Run `node validate.mjs path/to/list.json` from the reader checkout before publishing. Errors name their location, such as `list.sections[0].items[1].title`. Unknown fields are rejected so a misspelled field does not silently disappear. To introduce a new field deliberately, follow [the extension recipe](extending.md).
+A list is UTF-8 JSON. Run `node validate.mjs path/to/list.json` from the reader checkout before publishing. Errors name their location, such as `list.sections[0].items[1].title`. Unknown fields are rejected to catch typos. To add a field, follow [the extension recipe](extending.md).
 
-Text fields contain plain Unicode text. Paragraph breaks are `\n\n` inside a JSON string and are preserved on screen and in context exports. HTML and Markdown are displayed as text, not interpreted. Use labeled link objects rather than embedding URLs in prose; the reader can then render and export them consistently. Items without links are valid, including physical books and private reading assignments.
+Text fields contain plain Unicode text. Use `\n\n` inside a string for paragraph breaks, which appear on screen and in exports. HTML and Markdown display as text. Put URLs in labeled link objects so they appear as links in both the page and export. Links are optional, including for physical books and private reading assignments.
 
 ## Objects
 
@@ -24,7 +24,7 @@ Required properties have no default. Optional arrays default to empty; omitting 
 - Links have descriptive labels and absolute HTTP/HTTPS URLs. The first item link is the main source; companions and alternatives follow. A part's links belong to that part. Avoid a vague label such as “here” when the link will also appear in an export.
 - Parts are individually checkable portions of a reading. They have progress, while recall, notes and quizzes belong to the parent item.
 - An item can have zero, one or several quizzes. Each quiz has at least one question. Each question has 2–26 choices; `answer` is the correct choice's ID, not its position. Only single-choice questions are supported.
-- Quizzes ask for recall first but provide a skip button. This gate is fixed behavior, not a configurable assessment engine. Code exercises can be linked but are not executed or graded.
+- Quizzes ask for recall first and provide a skip button. Code exercises can be linked but are not executed or graded.
 
 ### IDs
 
@@ -39,7 +39,7 @@ Use lowercase slugs beginning with a lowercase letter or digit, followed by lowe
 | Question      | Its quiz                                                        |
 | Choice        | Its question                                                    |
 
-IDs identify saved state, rather than display positions or titles. Quiz answers use the key `<quiz-id>/<question-id>` and a choice ID value.
+Quiz answers use the key `<quiz-id>/<question-id>` and a choice ID value.
 
 ## Editing a list with saved progress
 
@@ -47,9 +47,9 @@ IDs identify saved state, rather than display positions or titles. Quiz answers 
 - Replace a reading or question with meaningfully different content: use a new ID. Otherwise old progress or an old answer can be interpreted as applying to the replacement.
 - Correct an answer key without changing what the choices mean: retain choice IDs; the score reflects the current answer key. If a choice's meaning changes, give it a new ID. An unsupported saved choice is not displayed as a valid current answer.
 - Remove an item: its state remains stored, so restoring the same item ID can restore its notes. Current-list Markdown exports omit removed items and are not full state backups.
-- Rename a list ID: this selects different browser storage. It does not migrate existing state. An advanced `storageKey` override exists for deliberate compatibility, not routine list creation.
+- Rename a list ID: this selects different browser storage without migrating existing state. Use `storageKey` to retain a previous storage key during a migration.
 
-Do not regenerate IDs every time you generate content. Review IDs alongside text changes before publishing. Core content evolution and saved-state compatibility are separate concerns.
+Keep generated IDs on subsequent edits. Review ID changes before publishing.
 
 ## Configuration
 
@@ -68,7 +68,7 @@ Do not regenerate IDs every time you generate content. Review IDs alongside text
 
 Content, theme and compatibility paths must stay inside the instance: no absolute paths, parent traversal or symlinks. Use `/` separators and simple filenames; a leading `./` is allowed. The assembler refuses names colliding with core files, including `theme.css`; call an instance override `custom-theme.css`. It copies precisely these referenced files, not other files next to them. A sync script is externally hosted and is not bundled by the assembler. CSS overrides should be self-contained; images/fonts referenced from CSS are not automatically copied.
 
-Sync is a separately installed integration. Its local-storage key and remote `site` are separate identities: both must be considered when reusing an instance. Never reuse someone else's production settings. Public configuration must not contain secrets.
+When copying an instance, give the list a new ID and remove or change any `storageKey` override. If sync is enabled, choose a new sync `site`. Keep credentials out of public configuration.
 
 ### Legacy compatibility
 
@@ -83,4 +83,4 @@ New lists do not need this. A migration can map stable quiz keys to historical n
 }
 ```
 
-`choices` records historical order independently of current display order. Treat it as append-only: never reorder or remove recorded IDs, because their positions identify old numeric answers. If the same question gains a new choice, append its new ID to this mapping even if it appears elsewhere on screen. Existing numeric answers decode to choice IDs and encode back at the storage/sync boundary. Keep the mapping with the instance that needs it, rather than putting domain-specific migration data into the reusable reader. Validate mappings and test historical local and remote state before deploying a migration.
+`choices` records the historical order. Never reorder or remove its IDs: their positions identify old numeric answers. Append new choices even if they appear elsewhere on screen. The codec converts numeric answers to choice IDs when reading state and converts them back when saving or syncing. Keep this mapping in the instance folder. Validate it and test historical local and remote state before deploying a migration.
