@@ -26,6 +26,45 @@ function field(item, className, label, prompt) {
   input.id = `${className}-${item.id}`; input.rows = 3; input.placeholder = prompt;
   lab.htmlFor = input.id; wrap.append(lab, input); return wrap;
 }
+function renderAudio(recordings, t) {
+  const group = element('div', 'audio-options');
+  group.append(element('p', 'lab', t('audio')));
+  for (const recording of recordings) {
+    const entry = element('div', 'audio-option');
+    const link = element('a', '', recording.label);
+    link.href = recording.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    entry.append(link, element('p', 'prose', recording.description));
+    if (recording.src) {
+      const start = button('audio-start', t('playAudio'), t('playAudioLabel', {title: recording.label}));
+      const player = element('audio'), status = element('p', 'audio-status');
+      player.controls = true; player.preload = 'none'; player.hidden = true; player.tabIndex = 0;
+      player.setAttribute('aria-label', recording.label);
+      status.setAttribute('role', 'status');
+      const failed = () => {
+        status.textContent = t('audioFailed');
+        start.textContent = t('retryAudio'); start.hidden = false;
+        start.setAttribute('aria-label', t('retryAudioLabel', {title: recording.label}));
+        if (document.activeElement === player) start.focus();
+        player.hidden = true;
+      };
+      player.addEventListener('error', failed);
+      player.addEventListener('playing', () => { status.textContent = ''; });
+      player.addEventListener('play', () => {
+        for (const other of document.querySelectorAll('.audio-option audio')) if (other !== player) other.pause();
+      });
+      start.addEventListener('click', () => {
+        // No media URL reaches the browser's loader until the reader asks to play.
+        status.textContent = '';
+        player.src = recording.src; player.hidden = false; start.hidden = true;
+        player.play().catch(error => { if (error.name !== 'AbortError') failed(); });
+        player.focus();
+      });
+      entry.append(start, player, status);
+    }
+    group.append(entry);
+  }
+  return group;
+}
 export function renderItem(item, list, language = 'en') {
   const t = translator(language);
   const article = element('article', 'item'); article.dataset.id = item.id;
@@ -35,6 +74,7 @@ export function renderItem(item, list, language = 'en') {
   const body = element('div', 'body');
   if (item.description) body.append(element('p', 'what prose', item.description));
   if (item.links?.length) body.append(renderLinks(item.links));
+  if (item.audio?.length) body.append(renderAudio(item.audio, t));
   if (item.why) {
     const why = element('div', 'why'); why.append(element('span', 'lab', t('why')), element('div', 'prose', item.why)); body.append(why);
   }
@@ -50,6 +90,7 @@ export function renderItem(item, list, language = 'en') {
       const text = element('div', 'txt'); text.append(element('span', '', part.title));
       if (part.description) text.append(element('p', 'prose', part.description));
       if (part.links?.length) text.append(renderLinks(part.links));
+      if (part.audio?.length) text.append(renderAudio(part.audio, t));
       li.append(button('box', '✓', t('markDone', {title: part.title})), text); ul.append(li);
     }
     body.append(ul);

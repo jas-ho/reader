@@ -8,16 +8,17 @@ Text fields contain plain Unicode text. Use `\n\n` inside a string for paragraph
 
 Required properties have no default. Optional arrays default to empty; omitting them and writing `[]` have the same meaning. Optional text is omitted from the page when absent, except the built-in recall and note prompts.
 
-| Object   | Required                                      | Optional / default                                                                    |
-| -------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
-| List     | `schemaVersion: 1`, `id`, `title`, `sections` | `description`, `recallPrompt`, `notePrompt`, `footer`; prompts use built-in defaults  |
-| Section  | `id`, `title`, `items`                        | `description`                                                                         |
-| Item     | `id`, `title`                                 | `byline`, `description`, `why`, `effort: []`, `links: []`, `parts: []`, `quizzes: []` |
-| Part     | `id`, `title`                                 | `description`, `links: []`                                                            |
-| Link     | `label`, `url`                                | None                                                                                  |
-| Quiz     | `id`, `title`, `questions`                    | None                                                                                  |
-| Question | `id`, `prompt`, `choices`, `answer`           | `explanation`                                                                         |
-| Choice   | `id`, `text`                                  | None                                                                                  |
+| Object   | Required                                      | Optional / default                                                                                 |
+| -------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| List     | `schemaVersion: 1`, `id`, `title`, `sections` | `description`, `recallPrompt`, `notePrompt`, `footer`; prompts use built-in defaults               |
+| Section  | `id`, `title`, `items`                        | `description`                                                                                      |
+| Item     | `id`, `title`                                 | `byline`, `description`, `why`, `effort: []`, `links: []`, `audio: []`, `parts: []`, `quizzes: []` |
+| Part     | `id`, `title`                                 | `description`, `links: []`, `audio: []`                                                            |
+| Link     | `label`, `url`                                | None                                                                                               |
+| Audio    | `label`, `url`, `description`                 | `src` (direct HTTPS audio URL)                                                                     |
+| Quiz     | `id`, `title`, `questions`                    | None                                                                                               |
+| Question | `id`, `prompt`, `choices`, `answer`           | `explanation`                                                                                      |
+| Choice   | `id`, `text`                                  | None                                                                                               |
 
 - A list has at least one section, and each section at least one item. Ordering in arrays controls display order.
 - `description` on an item is the reading assignment: chapters, sections to skim, questions to consider. `why` is the curator's rationale. `byline` can combine author and publication date as appropriate. `effort` is an array of short strings such as `["chapters 1–3", "about 45 minutes"]`.
@@ -25,6 +26,29 @@ Required properties have no default. Optional arrays default to empty; omitting 
 - Parts are individually checkable portions of a reading. They have progress, while recall, notes and quizzes belong to the parent item.
 - An item can have zero, one or several quizzes. Each quiz has at least one question. Each question has 2–26 choices; `answer` is the correct choice's ID, not its position. Only single-choice questions are supported.
 - Quizzes ask for recall first and provide a skip button. Code exercises can be linked but are not executed or graded.
+
+### Audio versions
+
+Add `audio` to an item or a part. Each entry names the provider in `label`, links to the publisher or episode page in `url`, and describes the recording in `description`. Include its language, duration when known, whether the voice is human or synthetic, and whether it reads the assigned text, an excerpt, an older version, or a summary/discussion.
+
+```json
+{
+  "audio": [
+    {
+      "label": "Publisher narration",
+      "url": "https://example.org/guide/audio",
+      "description": "English, 12 minutes. The author reads the complete guide.",
+      "src": "https://example.org/guide.mp3"
+    }
+  ]
+}
+```
+
+These are placeholder URLs. Replace them with a verified recording. `src` is optional: omit it for a listening option that requires the publisher's player or login. With `src`, the reader shows a play button and loads a native audio player on activation. The source page remains linked if playback fails. Audio requests go directly to the host after activation; recordings are not copied into the deployment. Starting another recording pauses the previous one. Listening does not automatically mark a reading done or save playback position.
+
+Use a public media URL from the publisher's page or podcast feed. Do not use expiring download URLs, gated media files, or arbitrary embed HTML. Check playback and sample the voice before recommending its quality. Compare the spoken coverage with the assigned text; a matching title alone is insufficient. Prefer full readings and explicitly label summaries, discussions and version differences. Recheck availability when updating the list.
+
+Exports include audio source pages and descriptions, so coverage limits travel with the context. Direct media URLs are only used by the player. Adding an audio option preserves reading IDs and saved notes.
 
 ### IDs
 

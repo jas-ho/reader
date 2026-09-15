@@ -5,6 +5,7 @@ const RESERVED = new Set(['constructor', 'prototype', '__proto__']);
 export const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 export const allItems = list => list.sections.flatMap(section => section.items);
 export const quizKey = (quiz, question) => `${quiz.id}/${question.id}`;
+// Reading-source links. Audio is exported separately with its coverage notes.
 export function allLinks(item) {
   const links = [...(item.links || []), ...(item.parts || []).flatMap(part => part.links || [])];
   return links.filter((link, index) => links.findIndex(other => other.url === link.url) === index);
@@ -33,15 +34,28 @@ export function validateList(list) {
     if (value.length < min) error(path, `expected at least ${min} entries`);
     return value;
   }
+  function url(value, path, protocols = ['http:', 'https:']) {
+    try {
+      const parsed = new URL(value);
+      if (typeof value !== 'string' || !protocols.includes(parsed.protocol) || parsed.username || parsed.password) throw Error();
+    } catch { error(path, `expected an absolute ${protocols.map(protocol => protocol.slice(0, -1).toUpperCase()).join('/')} URL without credentials`); }
+  }
   function links(value, path) {
     array(value, path).forEach((link, index) => {
       const p = `${path}[${index}]`;
       if (!object(link, p, ['label', 'url'])) return;
       text(link.label, `${p}.label`, true);
-      try {
-        const url = new URL(link.url);
-        if (typeof link.url !== 'string' || !['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw Error();
-      } catch { error(`${p}.url`, 'expected an absolute HTTP/HTTPS URL without credentials'); }
+      url(link.url, `${p}.url`);
+    });
+  }
+  function audio(value, path) {
+    array(value, path).forEach((recording, index) => {
+      const p = `${path}[${index}]`;
+      if (!object(recording, p, ['label', 'url', 'description', 'src'])) return;
+      text(recording.label, `${p}.label`, true);
+      text(recording.description, `${p}.description`, true);
+      url(recording.url, `${p}.url`);
+      if (recording.src !== undefined) url(recording.src, `${p}.src`, ['https:']);
     });
   }
   if (!object(list, 'list', ['schemaVersion', 'id', 'title', 'description', 'recallPrompt', 'notePrompt', 'footer', 'sections'])) return errors;
@@ -54,15 +68,17 @@ export function validateList(list) {
     id(section.id, `${sp}.id`, sectionIDs); text(section.title, `${sp}.title`, true); text(section.description, `${sp}.description`);
     array(section.items, `${sp}.items`, 1, false).forEach((item, ii) => {
       const ip = `${sp}.items[${ii}]`;
-      if (!object(item, ip, ['id', 'title', 'byline', 'description', 'why', 'effort', 'links', 'parts', 'quizzes'])) return;
+      if (!object(item, ip, ['id', 'title', 'byline', 'description', 'why', 'effort', 'links', 'audio', 'parts', 'quizzes'])) return;
       id(item.id, `${ip}.id`, progressIDs); text(item.title, `${ip}.title`, true);
       for (const field of ['byline', 'description', 'why']) text(item[field], `${ip}.${field}`);
       array(item.effort, `${ip}.effort`).forEach((v, i) => text(v, `${ip}.effort[${i}]`, true));
       links(item.links, `${ip}.links`);
+      audio(item.audio, `${ip}.audio`);
       array(item.parts, `${ip}.parts`).forEach((part, pi) => {
         const pp = `${ip}.parts[${pi}]`;
-        if (!object(part, pp, ['id', 'title', 'description', 'links'])) return;
+        if (!object(part, pp, ['id', 'title', 'description', 'links', 'audio'])) return;
         id(part.id, `${pp}.id`, progressIDs); text(part.title, `${pp}.title`, true); text(part.description, `${pp}.description`); links(part.links, `${pp}.links`);
+        audio(part.audio, `${pp}.audio`);
       });
       array(item.quizzes, `${ip}.quizzes`).forEach((quiz, qi) => {
         const qp = `${ip}.quizzes[${qi}]`;

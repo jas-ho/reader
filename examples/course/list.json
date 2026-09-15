@@ -18,6 +18,13 @@
             { "label": "Guide (placeholder)", "url": "https://example.org/guide" },
             { "label": "Video companion (placeholder)", "url": "https://example.org/video" }
           ],
+          "audio": [
+            {
+              "label": "Guide narration (placeholder)",
+              "url": "https://example.org/guide/audio",
+              "description": "Placeholder for a full reading of the guide. Replace with a verified recording, its language, duration and narration type."
+            }
+          ],
           "parts": [
             { "id": "read-guide", "title": "Read the guide", "links": [{ "label": "Guide (placeholder)", "url": "https://example.org/guide" }] },
             { "id": "try-recipe", "title": "Try the recipe exercise", "description": "Write the instructions, then follow them yourself.", "links": [{ "label": "Exercise (placeholder)", "url": "https://example.org/exercise" }] }

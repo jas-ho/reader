@@ -196,6 +196,15 @@ footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);fo
 .prose{white-space:pre-line;overflow-wrap:anywhere}
 .source-links{padding-left:1.25rem;margin:.5rem 0 .8rem;font-size:.94rem}
 .source-links li{overflow-wrap:anywhere}
+.audio-options{margin:.8rem 0;padding:.75rem;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}
+.audio-options > .lab{margin:0 0 .4rem}
+.audio-option + .audio-option{margin-top:1rem}
+.audio-option a{overflow-wrap:anywhere}
+.audio-option p{margin:.4rem 0;font-size:.9rem}
+.audio-option audio{display:block;width:100%;max-width:32rem;margin-top:.5rem}
+.audio-start{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:.5rem .75rem;cursor:pointer}
+.audio-start:hover{border-color:var(--accent)}
+.audio-status:empty{margin:0}
 .subs .txt{min-width:0}
 .subs .txt p{margin:.3rem 0}
 .opt[aria-disabled="true"]{cursor:default}

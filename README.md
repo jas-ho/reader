@@ -1,6 +1,6 @@
 # Reader
 
-Static reading lists with progress tracking, recall, notes and optional quizzes. Readers can copy or download their context for a chatbot. Runs on a static web server.
+Static reading lists with progress tracking, recall, notes and optional quizzes. Readers can copy or download their context for a chatbot. Add [audio versions](docs/model.md#audio-versions) with optional playback in the page. Runs on a static web server.
 
 The examples use fictional book titles and placeholder `example.org` links. Replace them with your own material.
 

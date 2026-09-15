@@ -432,3 +432,44 @@ test('export treats reader content as reference and excludes retired personal st
   assert.doesNotMatch(markdown, /SECRET RETIRED/);
   assert.match(markdown, /1 correct \/ 1 answered \(2 questions available\)/);
 });
+
+test('audio versions keep source pages and coverage in exports, including a shared article URL', () => {
+  const list = courseList(), item = firstItem(list);
+  const recording = {label: 'Publisher reading', url: item.links[0].url, description: 'German synthetic voice. Full article, 12 minutes.', src: 'https://example.org/reading.mp3'};
+  const discussion = {label: 'Author interview', url: 'https://example.org/interview', description: 'English discussion of the exercise; not a reading.'};
+  item.audio = [recording]; item.parts[0].audio = [discussion];
+  assert.deepEqual(validateList(list), []);
+  assert.equal(allLinks(item).filter(link => link.url === recording.url).length, 1);
+  for (const language of ['en', 'de']) {
+    const exported = buildExport(list, emptyState(), item.id, language);
+    for (const audio of [recording, discussion]) for (const field of ['label', 'url', 'description']) assert.ok(exported.includes(audio[field]));
+    assert.equal(exported.split(discussion.url).length - 1, 1, 'audio-only sources appear once with their coverage notes');
+    assert.ok(!exported.includes(recording.src), 'export the stable source page, not a media URL');
+  }
+  const onlyAudio = minimalList(); firstItem(onlyAudio).audio = [discussion];
+  assert.doesNotMatch(buildExport(onlyAudio, emptyState()), /No source link/);
+});
+
+for (const scope of ['item', 'part']) {
+  test(`audio validation catches unsafe URLs and incomplete metadata on a ${scope}`, () => {
+    const list = courseList();
+    const parent = scope === 'item' ? firstItem(list) : firstItem(list).parts[0];
+    const valid = {label: 'Narration', url: 'https://example.org/audio', description: 'English reading.', src: 'https://example.org/audio.mp3'};
+    for (const value of [undefined, [], [valid], [{...valid, src: undefined}]]) {
+      parent.audio = value;
+      assert.deepEqual(validateList(list), []);
+    }
+    for (const bad of [null, {}, [{...valid, label: ''}], [{...valid, description: undefined}], [{...valid, description: 12}], [{...valid, iframe: '<iframe>'}]]) {
+      parent.audio = bad;
+      assert.ok(validateList(list).some(error => error.includes('.audio')), 'invalid audio metadata must be rejected');
+    }
+    for (const field of ['url', 'src']) {
+      for (const value of [null, 12, '', '/audio.mp3', 'javascript:alert(1)', 'data:audio/wav,hi', 'https://name:secret@example.org/audio.mp3']) {
+        parent.audio = [{...valid, [field]: value}];
+        errorsAt(validateList(list), field);
+      }
+    }
+    parent.audio = [{...valid, src: 'http://example.org/audio.mp3'}];
+    errorsAt(validateList(list), 'src');
+  });
+}

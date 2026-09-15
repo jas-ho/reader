@@ -11,7 +11,9 @@ All requests are intercepted. No production content, account or network is used.
 
 import argparse
 import copy
+import io
 import mimetypes
+import wave
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -134,6 +136,7 @@ class Site:
         self.requests = []
         self.errors = []
         self.unexpected = []
+        self.media = {}
         self.sync_script = None
         self.hold_config = False
         self.pending_config = None
@@ -143,6 +146,12 @@ class Site:
     def route(self, route):
         url = urlparse(route.request.url)
         self.requests.append(route.request.url)
+        if route.request.url in self.media:
+            body = self.media[route.request.url]
+            route.fulfill(
+                status=200 if body else 404, body=body or b"", content_type="audio/wav"
+            )
+            return
         if (
             self.root_entry
             and url.scheme + "://" + url.netloc == ORIGIN
@@ -571,6 +580,126 @@ def german_reader(browser, screenshots):
     context.close()
 
 
+def audio_versions(browser, screenshots):
+    # Actual browser playback against a generated silent WAV, with no network.
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as sound:
+        sound.setnchannels(1)
+        sound.setsampwidth(2)
+        sound.setframerate(8000)
+        sound.writeframes(b"\0\0" * 8000 * 30)
+    for language, width in (("en", 1280), ("de", 320)):
+        context = browser.new_context(
+            viewport={"width": width, "height": 844}, color_scheme="dark"
+        )
+        page = context.new_page()
+        data = course()
+        item = data["sections"][0]["items"][0]
+        item["audio"] = [
+            {
+                "label": "Publisher reading " + HOSTILE,
+                "url": item["links"][0]["url"],
+                "description": "English synthetic reading, full text. " + HOSTILE,
+                "src": "https://media.example.org/reading.wav",
+            },
+            {
+                "label": "Podcast discussion",
+                "url": "https://example.org/podcast",
+                "description": "A related discussion, not a reading.",
+            },
+        ]
+        item["parts"][0]["audio"] = [
+            {
+                "label": "Exercise reading",
+                "url": "https://example.org/exercise-audio",
+                "description": "English excerpt.",
+                "src": "https://media.example.org/exercise.wav",
+            },
+            {
+                "label": "Unavailable audio",
+                "url": "https://example.org/unavailable",
+                "description": "A recording that has disappeared.",
+                "src": "https://media.example.org/gone.wav",
+            },
+        ]
+        site = Site(page, data)
+        site.config["language"] = language
+        site.media = {
+            "https://media.example.org/" + name: buffer.getvalue()
+            for name in ("reading.wav", "exercise.wav")
+        }
+        site.media["https://media.example.org/gone.wav"] = None
+        site.open()
+        expect(page.locator(".audio-option")).to_have_count(4)
+        assert not any(url in site.media for url in site.requests)
+        expect(page.locator("audio[src]")).to_have_count(0)
+        expect(page.locator(".audio-option img, .audio-option iframe")).to_have_count(0)
+        before = storage(page)
+        first = page.locator(".audio-option").nth(0)
+        expect(first).to_contain_text(HOSTILE)
+        expect(
+            page.locator(".audio-option").nth(1).locator("button, audio")
+        ).to_have_count(0)
+        expect(first.locator("button")).to_have_text(
+            "Audio abspielen" if language == "de" else "Play audio"
+        )
+        first.locator("button").focus()
+        page.keyboard.press("Enter")
+        player = first.locator("audio")
+        expect(player).to_be_visible()
+        expect(player).to_be_focused()
+        page.wait_for_function(
+            "audio => audio.currentTime > 0", arg=player.element_handle()
+        )
+        player.evaluate("node => { node.currentTime = 5; }")
+        page.wait_for_function(
+            "audio => audio.currentTime >= 5", arg=player.element_handle()
+        )
+        page.locator(".audio-option").nth(2).locator("button").click()
+        page.wait_for_function(
+            "audio => audio.currentTime > 0",
+            arg=page.locator(".audio-option").nth(2).locator("audio").element_handle(),
+        )
+        assert player.evaluate("node => node.paused")
+        broken = page.locator(".audio-option").nth(3)
+        broken.locator("button").click()
+        expect(broken.locator('[role="status"]')).to_contain_text(
+            "Quellenlink" if language == "de" else "source link"
+        )
+        expect(broken.locator("a")).to_have_attribute(
+            "href", "https://example.org/unavailable"
+        )
+        expect(broken.locator("audio")).to_be_hidden()
+        expect(broken.locator("button")).to_have_text(
+            "Erneut versuchen" if language == "de" else "Retry audio"
+        )
+        site.media["https://media.example.org/gone.wav"] = buffer.getvalue()
+        broken.locator("button").click()
+        page.wait_for_function(
+            "audio => audio.currentTime > 0",
+            arg=broken.locator("audio").element_handle(),
+        )
+        expect(broken.locator('[role="status"]')).to_have_text("")
+        assert storage(page) == before, (
+            "listening must not change reading progress or notes"
+        )
+        page.locator("#exportBtn").click()
+        exported = page.locator("#handoffText").input_value()
+        for recording in item["audio"] + item["parts"][0]["audio"]:
+            for field in ("label", "description", "url"):
+                assert recording[field] in exported
+            assert recording.get("src", "NO_MEDIA_URL") not in exported
+        assert download_text(page) == exported
+        page.locator("#handoffClose").click()
+        check_layout(page, width)
+        if screenshots:
+            page.screenshot(
+                path=str(screenshots / f"audio-{language}-{width}.png"), full_page=True
+            )
+        site.healthy()
+        context.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
@@ -584,5 +713,6 @@ if __name__ == "__main__":
         immutable_release_root(browser)
         accessibility_regressions(browser)
         german_reader(browser, args.screenshots)
+        audio_versions(browser, args.screenshots)
         browser.close()
     print("Synthetic domain, isolation, ordering, export and mobile acceptance passed")
