@@ -15,7 +15,7 @@ Required properties have no default. Optional arrays default to empty; omitting 
 | Item     | `id`, `title`                                 | `byline`, `description`, `why`, `effort: []`, `links: []`, `audio: []`, `parts: []`, `quizzes: []` |
 | Part     | `id`, `title`                                 | `description`, `links: []`, `audio: []`                                                            |
 | Link     | `label`, `url`                                | None                                                                                               |
-| Audio    | `label`, `url`, `description`                 | `src` (direct HTTPS audio URL)                                                                     |
+| Audio    | `label`, `url`, `description`                 | `src` (direct HTTPS audio URL), `duration`, `warning`, `details`                                   |
 | Quiz     | `id`, `title`, `questions`                    | None                                                                                               |
 | Question | `id`, `prompt`, `choices`, `answer`           | `explanation`                                                                                      |
 | Choice   | `id`, `text`                                  | None                                                                                               |
@@ -29,7 +29,7 @@ Required properties have no default. Optional arrays default to empty; omitting 
 
 ### Audio versions
 
-Add `audio` to an item or a part. Each entry names the provider in `label`, links to the publisher or episode page in `url`, and describes the recording in `description`. Include its language, duration when known, whether the voice is human or synthetic, and whether it reads the assigned text, an excerpt, an older version, or a summary/discussion.
+Add `audio` to an item or a part. Each entry names the provider in `label`, links to the publisher or episode page in `url`, and describes the recording in `description`. Keep `description` short and include the language, whether the voice is human or synthetic, and whether it reads the assigned text, an excerpt, an older version, or a summary/discussion. This text always stays visible. Optional `duration` is a short display label such as `"12 min"`. Put coverage caveats in `warning`, which also stays visible. Optional `details` holds additional information behind the Details button, alongside the provider link. Existing descriptions still display in full; the reader never parses or truncates them.
 
 ```json
 {
@@ -37,18 +37,19 @@ Add `audio` to an item or a part. Each entry names the provider in `label`, link
     {
       "label": "Publisher narration",
       "url": "https://example.org/guide/audio",
-      "description": "English, 12 minutes. The author reads the complete guide.",
+      "description": "English. The author reads the complete guide.",
+      "duration": "12 min",
       "src": "https://example.org/guide.mp3"
     }
   ]
 }
 ```
 
-These are placeholder URLs. Replace them with a verified recording. `src` is optional: omit it for a listening option that requires the publisher's player or login. With `src`, the reader shows a play button and loads a native audio player on activation. The source page remains linked if playback fails. Audio requests go directly to the host after activation; recordings are not copied into the deployment. Starting another recording pauses the previous one. Listening does not automatically mark a reading done or save playback position.
+These are placeholder URLs. Replace them with a verified recording. `src` is optional: omit it for a listening option that requires the publisher's player or login. With `src`, the reader shows a play button and loads a native audio player on activation. The Details button reveals the source page without loading media. Playback failures reveal that link automatically. Audio requests go directly to the host after activation; recordings are not copied into the deployment. Starting another recording pauses the previous one. Listening does not automatically mark a reading done or save playback position.
 
 Use a public media URL from the publisher's page or podcast feed. Do not use expiring download URLs, gated media files, or arbitrary embed HTML. Check playback and sample the voice before recommending its quality. Compare the spoken coverage with the assigned text; a matching title alone is insufficient. Prefer full readings and explicitly label summaries, discussions and version differences. Recheck availability when updating the list.
 
-Exports include audio source pages and descriptions, so coverage limits travel with the context. Direct media URLs are only used by the player. Adding an audio option preserves reading IDs and saved notes.
+Exports include audio source pages, descriptions, durations, warnings and details, so coverage limits travel with the context. Direct media URLs are only used by the player. Adding an audio option preserves reading IDs and saved notes.
 
 ### IDs
 

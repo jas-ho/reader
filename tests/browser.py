@@ -244,6 +244,10 @@ def interactions(browser, width, screenshots):
     expect(page.locator(".item")).to_have_count(2)
     card = page.locator('.item[data-id="first-reading"]')
     expect(card).to_contain_text(HOSTILE)
+    assert (
+        card.locator("h3").evaluate("node => getComputedStyle(node).textDecorationLine")
+        == "none"
+    )
     assert not page.evaluate("Boolean(window.authoredExecuted || window.noteExecuted)")
     expect(card.locator("img")).to_have_count(0)
     check_layout(page, width)
@@ -553,7 +557,7 @@ def german_reader(browser, screenshots):
     expect(page.locator("#count")).to_have_text("2 offen")
     expect(page.get_by_role("button", name="Export aller Notizen")).to_be_visible()
     card = page.locator("article.item").first
-    expect(card.locator(".why .lab")).to_have_text("Warum dieser Text")
+    expect(card.locator(".why")).to_have_text("Practice finding an assumption.")
     card.locator(".closeout > summary").click()
     card.locator(".recall").fill("Meine Erinnerung")
     card.locator(".notetext").fill("Eine deutsche Notiz")
@@ -601,6 +605,9 @@ def audio_versions(browser, screenshots):
                 "url": item["links"][0]["url"],
                 "description": "English synthetic reading, full text. " + HOSTILE,
                 "src": "https://media.example.org/reading.wav",
+                "duration": "30 sec",
+                "warning": "Transcript differs. " + HOSTILE,
+                "details": "An older publication. " + HOSTILE,
             },
             {
                 "label": "Podcast discussion",
@@ -638,12 +645,27 @@ def audio_versions(browser, screenshots):
         first = page.locator(".audio-option").nth(0)
         expect(first).to_contain_text(HOSTILE)
         expect(
-            page.locator(".audio-option").nth(1).locator("button, audio")
+            page.locator(".audio-option").nth(2).locator(".audio-description")
+        ).to_have_text(item["parts"][0]["audio"][0]["description"])
+        expect(
+            page.locator(".audio-option").nth(1).locator(".audio-start, audio")
         ).to_have_count(0)
-        expect(first.locator("button")).to_have_text(
-            "Audio abspielen" if language == "de" else "Play audio"
+        expect(first.locator(".audio-start")).to_contain_text(
+            "Anhören · 30 sec" if language == "de" else "Listen · 30 sec"
         )
-        first.locator("button").focus()
+        expect(first.locator(".audio-warning")).to_be_visible()
+        expect(first.locator(".audio-source")).to_be_hidden()
+        first.locator(".audio-details").focus()
+        page.keyboard.press("Enter")
+        expect(first.locator(".audio-source")).to_be_visible()
+        expect(first.locator(".audio-details")).to_have_attribute(
+            "aria-expanded", "true"
+        )
+        assert not any(url in site.media for url in site.requests)
+        first.locator(".audio-details").click()
+        expect(first.locator(".audio-warning")).to_be_visible()
+        expect(first.locator(".audio-description")).to_be_visible()
+        first.locator(".audio-start").focus()
         page.keyboard.press("Enter")
         player = first.locator("audio")
         expect(player).to_be_visible()
@@ -655,14 +677,14 @@ def audio_versions(browser, screenshots):
         page.wait_for_function(
             "audio => audio.currentTime >= 5", arg=player.element_handle()
         )
-        page.locator(".audio-option").nth(2).locator("button").click()
+        page.locator(".audio-option").nth(2).locator(".audio-start").click()
         page.wait_for_function(
             "audio => audio.currentTime > 0",
             arg=page.locator(".audio-option").nth(2).locator("audio").element_handle(),
         )
         assert player.evaluate("node => node.paused")
         broken = page.locator(".audio-option").nth(3)
-        broken.locator("button").click()
+        broken.locator(".audio-start").click()
         expect(broken.locator('[role="status"]')).to_contain_text(
             "Quellenlink" if language == "de" else "source link"
         )
@@ -670,11 +692,12 @@ def audio_versions(browser, screenshots):
             "href", "https://example.org/unavailable"
         )
         expect(broken.locator("audio")).to_be_hidden()
-        expect(broken.locator("button")).to_have_text(
+        expect(broken.locator(".audio-source")).to_be_visible()
+        expect(broken.locator(".audio-start")).to_have_text(
             "Erneut versuchen" if language == "de" else "Retry audio"
         )
         site.media["https://media.example.org/gone.wav"] = buffer.getvalue()
-        broken.locator("button").click()
+        broken.locator(".audio-start").click()
         page.wait_for_function(
             "audio => audio.currentTime > 0",
             arg=broken.locator("audio").element_handle(),
@@ -686,16 +709,59 @@ def audio_versions(browser, screenshots):
         page.locator("#exportBtn").click()
         exported = page.locator("#handoffText").input_value()
         for recording in item["audio"] + item["parts"][0]["audio"]:
-            for field in ("label", "description", "url"):
-                assert recording[field] in exported
+            for field in (
+                "label",
+                "description",
+                "url",
+                "duration",
+                "warning",
+                "details",
+            ):
+                if field in recording:
+                    assert recording[field] in exported
             assert recording.get("src", "NO_MEDIA_URL") not in exported
         assert download_text(page) == exported
         page.locator("#handoffClose").click()
+        card = page.locator("article.item").first
+        summary = card.locator(".closeout > summary")
+        expect(summary).to_contain_text("Quiz" if language == "de" else "quiz")
+        expect(
+            page.locator("article.item").nth(1).locator(".closeout > summary")
+        ).not_to_contain_text("Quiz" if language == "de" else "quiz")
+        summary_box = summary.bounding_box()
+        skip_box = card.locator(".drop").bounding_box()
+        assert card.locator(".drop").evaluate(
+            "node => node.scrollWidth <= node.clientWidth"
+        ), "skip label must fit without clipping"
+        text_box = summary.locator(".summary-text").bounding_box()
+        assert text_box["x"] + text_box["width"] <= skip_box["x"], (
+            "notes and skip must not overlap"
+        )
+        assert abs(summary_box["y"] - skip_box["y"]) < 5, (
+            "notes and skip share a footer row"
+        )
         check_layout(page, width)
         if screenshots:
             page.screenshot(
                 path=str(screenshots / f"audio-{language}-{width}.png"), full_page=True
             )
+        card.locator(".head .box").click()
+        assert broken.locator("audio").evaluate("audio => audio.paused")
+        expect(card.locator(".drop")).to_be_hidden()
+        assert (
+            card.locator("h3").evaluate(
+                "node => getComputedStyle(node).textDecorationLine"
+            )
+            == "line-through"
+        )
+        card.locator(".head .box").click()
+        expect(card.locator(".drop")).to_be_visible()
+        assert (
+            card.locator("h3").evaluate(
+                "node => getComputedStyle(node).textDecorationLine"
+            )
+            == "none"
+        )
         site.healthy()
         context.close()
 

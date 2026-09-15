@@ -435,14 +435,14 @@ test('export treats reader content as reference and excludes retired personal st
 
 test('audio versions keep source pages and coverage in exports, including a shared article URL', () => {
   const list = courseList(), item = firstItem(list);
-  const recording = {label: 'Publisher reading', url: item.links[0].url, description: 'German synthetic voice. Full article, 12 minutes.', src: 'https://example.org/reading.mp3'};
+  const recording = {label: 'Publisher reading', url: item.links[0].url, description: 'German synthetic voice.', duration: '12 minutes', warning: 'Earlier edition.', details: 'Recorded by the publisher.', src: 'https://example.org/reading.mp3'};
   const discussion = {label: 'Author interview', url: 'https://example.org/interview', description: 'English discussion of the exercise; not a reading.'};
   item.audio = [recording]; item.parts[0].audio = [discussion];
   assert.deepEqual(validateList(list), []);
   assert.equal(allLinks(item).filter(link => link.url === recording.url).length, 1);
   for (const language of ['en', 'de']) {
     const exported = buildExport(list, emptyState(), item.id, language);
-    for (const audio of [recording, discussion]) for (const field of ['label', 'url', 'description']) assert.ok(exported.includes(audio[field]));
+    for (const audio of [recording, discussion]) for (const field of ['label', 'url', 'description', 'duration', 'warning', 'details']) if (audio[field]) assert.ok(exported.includes(audio[field]));
     assert.equal(exported.split(discussion.url).length - 1, 1, 'audio-only sources appear once with their coverage notes');
     assert.ok(!exported.includes(recording.src), 'export the stable source page, not a media URL');
   }
@@ -468,6 +468,10 @@ for (const scope of ['item', 'part']) {
         parent.audio = [{...valid, [field]: value}];
         errorsAt(validateList(list), field);
       }
+    }
+    for (const field of ['duration', 'warning', 'details']) {
+      parent.audio = [{...valid, [field]: 42}];
+      errorsAt(validateList(list), field);
     }
     parent.audio = [{...valid, src: 'http://example.org/audio.mp3'}];
     errorsAt(validateList(list), 'src');

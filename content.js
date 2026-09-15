@@ -51,9 +51,10 @@ export function validateList(list) {
   function audio(value, path) {
     array(value, path).forEach((recording, index) => {
       const p = `${path}[${index}]`;
-      if (!object(recording, p, ['label', 'url', 'description', 'src'])) return;
+      if (!object(recording, p, ['label', 'url', 'description', 'src', 'duration', 'warning', 'details'])) return;
       text(recording.label, `${p}.label`, true);
       text(recording.description, `${p}.description`, true);
+      for (const field of ['duration', 'warning', 'details']) text(recording[field], `${p}.${field}`);
       url(recording.url, `${p}.url`);
       if (recording.src !== undefined) url(recording.src, `${p}.src`, ['https:']);
     });

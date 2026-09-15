@@ -71,7 +71,7 @@ function startReader(list, initialState, codec, storage, storageKey) {
     node.querySelector('.box').setAttribute('aria-pressed', String(value === 'done'));
     const item = items.find(item => item.id === node.dataset.id);
     if (item) {
-      node.querySelector('.drop').setAttribute('aria-pressed', String(value === 'dropped'));
+      if (['done', 'dropped'].includes(value)) for (const player of node.querySelectorAll('audio')) player.pause();
       node.querySelector('.box').setAttribute('aria-label', t('markDone', {title: item.title}) + (value === 'dropped' ? t('droppedLabel') : ''));
     }
   }

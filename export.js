@@ -3,6 +3,7 @@ import {itemScore} from './state.js';
 import {translator} from './locale.js';
 
 const quote = (text, t) => text?.trim() ? '> ' + text.trim().replace(/\r?\n/g, '\n> ') : t('nothingRecorded');
+const audioDescription = recording => [recording.duration, recording.description, recording.warning, recording.details].filter(Boolean).join('\n');
 const status = value => ['done', 'dropped'].includes(value) ? value : 'open';
 
 // This function and renderItem consume the same authored item. Add new context
@@ -20,7 +21,7 @@ export function itemBlock(item, state, number, language = 'en') {
   for (const link of links) lines.push(`- ${link.label}: ${link.url}`);
   if (item.audio?.length) {
     lines.push('', '### ' + t('audio'));
-    for (const recording of item.audio) lines.push(`- ${recording.label}: ${recording.url}`, quoted(recording.description));
+    for (const recording of item.audio) lines.push(`- ${recording.label}: ${recording.url}`, quoted(audioDescription(recording)));
   }
   if (item.parts?.length) {
     lines.push('', '### ' + t('parts'));
@@ -29,7 +30,7 @@ export function itemBlock(item, state, number, language = 'en') {
       lines.push(`- [${value === 'done' ? 'x' : value === 'dropped' ? '-' : ' '}] ${part.title}`);
       if (part.description) lines.push(quoted(part.description));
       for (const link of part.links || []) lines.push(`  - ${link.label}: ${link.url}`);
-      for (const recording of part.audio || []) lines.push(`  - ${t('audio')}: ${recording.label}: ${recording.url}`, quoted(recording.description));
+      for (const recording of part.audio || []) lines.push(`  - ${t('audio')}: ${recording.label}: ${recording.url}`, quoted(audioDescription(recording)));
     }
   }
   lines.push('', '### ' + t('readerRecall'), quoted(state.recall[item.id]), '', '### ' + t('readerNote'), quoted(state.notes[item.id]));
