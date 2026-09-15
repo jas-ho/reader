@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="A reading list with recall, notes and optional quizzes.">
+  <title>Reader</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./theme.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="mast"><h1>Reader</h1><p id="description" class="dek prose"></p></header>
+    <p id="startup-error" role="status">Loading reading list. If this message stays visible, serve this folder with <code>python3 -m http.server 8000</code> and open http://localhost:8000 instead of double-clicking the file.</p>
+    <noscript>This reader needs JavaScript to load the reading list and save your notes.</noscript>
+    <div id="app" hidden>
+      <main id="readings"></main>
+      <section class="pad"><h2>Scratch</h2><p>Anything that does not belong to one reading. Saved as you type.</p><textarea id="freeform" rows="6" placeholder="…" aria-label="Scratch notes"></textarea></section>
+      <footer>
+        <p>Use in your chatbot prepares the reading instructions, source links, recall and notes to copy or download.</p>
+        <p id="storage-status" role="status">Progress and notes stay in this browser.</p>
+        <p id="theme-status" role="status"></p>
+        <p id="sync-status" role="status"></p>
+        <p id="curator-footer" class="prose"></p>
+      </footer>
+    </div>
+  </div>
+  <div class="bar" id="bar" hidden><div class="barrow">
+    <span class="count" id="count" aria-live="polite"></span>
+    <span class="hint" id="hint"></span><span id="syncMount"></span>
+    <button type="button" id="exportBtn" aria-label="Export all notes">Export all<span class="tx2"> notes</span></button>
+  </div></div>
+  <dialog class="handoff" id="handoff" aria-labelledby="handoffTitle" aria-describedby="handoffHelp">
+    <h2 id="handoffTitle">Use in your chatbot</h2>
+    <p id="handoffHelp">Copy this into your chatbot, or attach the downloaded file. It includes reading instructions, source links, your recall and your notes.</p>
+    <label for="handoffText">Context for your chatbot</label><textarea id="handoffText" readonly inputmode="none" rows="10"></textarea>
+    <p id="copyMsg"></p><div class="tools"><button type="button" id="notesDownload">Download context (.md)</button><button type="button" id="handoffClose">Close</button></div>
+  </dialog>
+  <script type="module" src="./reader.js"></script>
+</body>
+</html>

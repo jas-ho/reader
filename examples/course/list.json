@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "sample-course",
+  "title": "A tiny programming course",
+  "description": "Synthetic examples of multiple resources, checkable parts and quizzes. All example.org URLs are placeholders to replace, not real course materials.",
+  "sections": [
+    {
+      "id": "week-one",
+      "title": "Week 1: describe a process",
+      "items": [
+        {
+          "id": "step-by-step",
+          "title": "A repeatable recipe",
+          "description": "Read the guide, watch the companion and try the exercise. This reader tracks completion; it does not execute or grade code.",
+          "why": "Distinguish a reusable instruction from the result of running it.",
+          "effort": ["20 minutes reading", "10 minutes practice"],
+          "links": [
+            { "label": "Guide (placeholder)", "url": "https://example.org/guide" },
+            { "label": "Video companion (placeholder)", "url": "https://example.org/video" }
+          ],
+          "parts": [
+            { "id": "read-guide", "title": "Read the guide", "links": [{ "label": "Guide (placeholder)", "url": "https://example.org/guide" }] },
+            { "id": "try-recipe", "title": "Try the recipe exercise", "description": "Write the instructions, then follow them yourself.", "links": [{ "label": "Exercise (placeholder)", "url": "https://example.org/exercise" }] }
+          ],
+          "quizzes": [
+            {
+              "id": "recipe-concepts",
+              "title": "Concepts",
+              "questions": [
+                {
+                  "id": "instruction-or-result",
+                  "prompt": "Which is an instruction rather than a result?",
+                  "choices": [
+                    { "id": "instruction", "text": "Add one to the current number." },
+                    { "id": "result", "text": "The answer is seven." }
+                  ],
+                  "answer": "instruction",
+                  "explanation": "An instruction describes an action; the other choice reports one outcome."
+                }
+              ]
+            },
+            {
+              "id": "recipe-review",
+              "title": "Check your process",
+              "questions": [
+                {
+                  "id": "ambiguous-step",
+                  "prompt": "What makes a step easier to repeat?",
+                  "choices": [
+                    { "id": "explicit", "text": "Specify the action and the input." },
+                    { "id": "implicit", "text": "Leave the next action for the reader to guess." }
+                  ],
+                  "answer": "explicit",
+                  "explanation": "Explicit steps let different readers follow the same process."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+/* Optional override: set config.theme to "examples/course/theme.css". */
+:root {
+  --accent: #3156a4;
+  --accent-soft: #e9effb;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #a7c1ff;
+    --accent-soft: #223454;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #a7c1ff;
+  --accent-soft: #223454;
+}

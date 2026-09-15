@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "sample-book-club",
+  "title": "A small book club",
+  "description": "A fictional reading list demonstrating how to make your own. The book titles are invented; example.org links are placeholders, not reading material.",
+  "recallPrompt": "What stayed with you? Describe a scene or argument before looking back.",
+  "notePrompt": "What would you like to discuss with the group?",
+  "sections": [
+    {
+      "id": "first-meeting",
+      "title": "First meeting",
+      "description": "Start with a physical book. A reading does not need a web link.",
+      "items": [
+        {
+          "id": "imaginary-garden",
+          "title": "The Imaginary Garden",
+          "byline": "An invented book for this example",
+          "description": "Read chapters 1–3 in your own copy.\n\nChoose one passage to discuss; bring its page number.",
+          "why": "Practice separating what the narrator observes from what they infer.",
+          "effort": ["3 chapters", "about 45 minutes"]
+        },
+        {
+          "id": "looking-twice",
+          "title": "Looking twice",
+          "description": "Compare the fictional essay with its fictional response. Replace both placeholder URLs with your own sources.",
+          "links": [
+            { "label": "Essay (placeholder)", "url": "https://example.org/essay" },
+            { "label": "Response (placeholder)", "url": "https://example.org/response" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "second-meeting",
+      "title": "Second meeting",
+      "items": [
+        {
+          "id": "imaginary-garden-finish",
+          "title": "Finish The Imaginary Garden",
+          "description": "Complete these chapters in your own copy. Mark each part as you finish it.",
+          "parts": [
+            { "id": "garden-chapter-four", "title": "Chapter 4", "description": "Look for a change in the narrator's perspective." },
+            { "id": "garden-chapter-five", "title": "Chapter 5", "description": "Compare the ending with your first impression." }
+          ]
+        }
+      ]
+    }
+  ]
+}
