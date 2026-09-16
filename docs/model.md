@@ -96,6 +96,8 @@ Content, theme and compatibility paths must stay inside the instance: no absolut
 
 When copying an instance, give the list a new ID and remove or change any `storageKey` override. If sync is enabled, choose a new sync `site`. Keep credentials out of public configuration.
 
+The favicon uses a file convention instead of a config field: an optional `favicon.svg` in the instance folder replaces the default book icon during assembly. It must be a regular, self-contained SVG file. Other unreferenced files are not copied.
+
 ### Legacy compatibility
 
 New lists do not need this. A migration can map stable quiz keys to historical numeric answer slots:

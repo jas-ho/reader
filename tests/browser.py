@@ -190,6 +190,7 @@ class Site:
             "locale.js",
             "styles.css",
             "theme.css",
+            "favicon.svg",
         }:
             content_type = (
                 "text/javascript"
@@ -242,6 +243,7 @@ def interactions(browser, width, screenshots):
     site = Site(page, course())
     site.open()
     expect(page.locator(".item")).to_have_count(2)
+    expect(page.locator('link[rel="icon"]')).to_have_attribute("href", "./favicon.svg")
     card = page.locator('.item[data-id="first-reading"]')
     expect(card).to_contain_text(HOSTILE)
     assert (
@@ -444,6 +446,12 @@ def immutable_release_root(browser):
     site.open()
     expect(page.locator(".item")).to_have_count(1)
     assert page.url == ORIGIN + "/", "the public entry URL must stay unchanged"
+    expect(page.locator('link[rel="icon"]')).to_have_attribute(
+        "href", release + "favicon.svg"
+    )
+    assert page.evaluate(
+        "async () => (await fetch(document.querySelector('link[rel=icon]').href)).ok"
+    )
     card = page.locator(".item")
     card.locator(".closeout > summary").click()
     card.locator("textarea.notetext").fill("A note through an immutable release")
@@ -457,6 +465,7 @@ def immutable_release_root(browser):
         "content.js",
         "styles.css",
         "theme.css",
+        "favicon.svg",
         "config.json",
         "content/list.json",
     ):

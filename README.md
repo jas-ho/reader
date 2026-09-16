@@ -56,6 +56,7 @@ my-reading-list/
 ├── config.json
 ├── list.json
 ├── custom-theme.css    optional
+├── favicon.svg         optional
 └── reader-version      optional pinned reader commit
 ```
 
@@ -75,9 +76,11 @@ node assemble.mjs --instance ../my-reading-list --out ../reader-preview
 python3 -m http.server 8001 --directory ../reader-preview
 ```
 
-Open <http://localhost:8001>. Output must be a new folder outside both the reader and instance folders, with an existing parent directory. For another preview, choose another output name. Assembly validates and copies the application, license, config and referenced content/theme/compatibility files. It rejects unsafe paths, symlinks, filenames that conflict with application files, and existing output folders.
+Open <http://localhost:8001>. Output must be a new folder outside both the reader and instance folders, with an existing parent directory. For another preview, choose another output name. Assembly validates and copies the application, favicon, license, config and referenced content/theme/compatibility files. It rejects unsafe paths, symlinks, filenames that conflict with application files, and existing output folders.
 
-Upload the entire assembled folder to a static host, including its subfolders. Hosting under a path such as `/book-club/` works. Reassemble after content or theme changes.
+Upload the entire assembled folder to a static host, including its subfolders. Hosting under a path such as `/book-club/` works. Reassemble after content, theme or favicon changes.
+
+The default favicon is a cream book on a dark green background. To replace it for one deployment, put a self-contained SVG named `favicon.svg` in the instance folder and reassemble. No config change is needed. The icon is bundled with that release and loads before JavaScript. When serving the reader checkout directly, replace its `favicon.svg` instead.
 
 Publishing this folder makes the reading list and source links public. Keep private notes and credentials out of its content and configuration.
 

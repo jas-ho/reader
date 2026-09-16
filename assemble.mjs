@@ -10,7 +10,7 @@ import { translateShellHTML } from "./locale.js";
 
 export const CORE_ASSETS = [
   "index.html", "reader.js", "content.js", "render.js", "state.js",
-  "export.js", "sync.js", "locale.js", "styles.css", "theme.css", "LICENSE",
+  "export.js", "sync.js", "locale.js", "styles.css", "theme.css", "favicon.svg", "LICENSE",
 ];
 const ENGINE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -85,7 +85,11 @@ export async function assemble({ instanceDir, outDir, engineDir = ENGINE }) {
   valid(validateConfig(config), "config.json");
   const reserved = new Set([...CORE_ASSETS, "config.json", "release.json", ".index-pending"]);
   const files = new Map();
-  for (const name of CORE_ASSETS) files.set(name, await safeFile(engine, name));
+  for (const name of CORE_ASSETS) {
+    // One fixed filename keeps the icon available before JavaScript loads.
+    const source = name === "favicon.svg" && await exists(path.join(instance, name)) ? instance : engine;
+    files.set(name, await safeFile(source, name));
+  }
   files.set("config.json", configBytes);
   files.set("index.html", Buffer.from(translateShellHTML(files.get("index.html").toString("utf8"), config.language)));
 

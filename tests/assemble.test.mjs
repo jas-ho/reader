@@ -39,12 +39,33 @@ test('packages only allowlisted assets and exact nested references, excluding un
   assert.equal(await readFile(path.join(f.outDir, 'visual/custom.css'), 'utf8'), ':root { --accent: blue; }');
   assert.deepEqual(JSON.parse(await readFile(path.join(f.outDir, 'content/list.json'), 'utf8')), minimal());
   assert.equal(await readFile(path.join(f.outDir, 'LICENSE'), 'utf8'), await readFile(path.join(f.engineDir, 'LICENSE'), 'utf8'));
+  assert.equal(await readFile(path.join(f.outDir, 'favicon.svg'), 'utf8'), await readFile(path.join(f.engineDir, 'favicon.svg'), 'utf8'));
   await absent(path.join(f.outDir, 'private-notes.txt'));
   await absent(path.join(f.outDir, 'private-file.txt'));
   await absent(path.join(f.outDir, 'list.json'));
   const metadata = JSON.parse(await readFile(path.join(f.outDir, 'release.json'), 'utf8'));
   assert.deepEqual(metadata, { schemaVersion: 1, readerRevision: null });
   assert.equal(result.files.length, CORE_ASSETS.length + 4);
+});
+
+test('an instance favicon overrides the default without copying nearby files', async () => {
+  const f = await fixture();
+  const icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/></svg>';
+  await writeFile(path.join(f.instanceDir, 'favicon.svg'), icon);
+  await writeFile(path.join(f.instanceDir, 'unused-icon.svg'), 'not selected');
+  await assemble(f);
+  assert.equal(await readFile(path.join(f.outDir, 'favicon.svg'), 'utf8'), icon);
+  await absent(path.join(f.outDir, 'unused-icon.svg'));
+});
+
+test('instance favicons must be regular files, not symlinks or directories', async () => {
+  for (const kind of ['symlink', 'directory']) {
+    const f = await fixture(), icon = path.join(f.instanceDir, 'favicon.svg');
+    if (kind === 'symlink') await symlink(path.join(f.engineDir, 'favicon.svg'), icon);
+    else await mkdir(icon);
+    await assert.rejects(assemble(f), /Symlinks|Not a regular file/);
+    await absent(f.outDir);
+  }
 });
 
 test('invalid content is rejected before output creation with an actionable field path', async () => {

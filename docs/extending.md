@@ -4,6 +4,8 @@ Edit JavaScript for behavior and CSS for appearance. Keep reading-list content i
 
 ## Change the theme
 
+For a custom tab icon, add a self-contained `favicon.svg` to the instance folder. Assembly uses it instead of the reader's default book icon. Use an SVG with a square `viewBox`, simple shapes that remain legible at 16 pixels, and no external fonts or images. This is the one supported override of a core asset filename; other instance files still need distinct names.
+
 `styles.css` controls layout and components. `theme.css` defines the default CSS custom properties, including colors and fonts. In your instance, create `custom-theme.css` and set `"theme":"custom-theme.css"` in `config.json`. It loads after the defaults. The [course override](../examples/course/theme.css) is a small working example.
 
 Override properties from `theme.css`. Include dark-mode colors using both `@media (prefers-color-scheme: dark)` with `:root:not([data-theme="light"])` and `:root[data-theme="dark"]`. The assembler does not copy images or fonts referenced from CSS; use system fonts or host these assets separately.
