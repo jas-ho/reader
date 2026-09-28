@@ -1,5 +1,6 @@
 # Publishes the two examples as a live demo on GitHub Pages.
-# Inert until Pages is enabled with source "GitHub Actions" (Settings > Pages).
+# Enable Pages with source "GitHub Actions" (Settings > Pages) before merging:
+# without it the deploy job fails on every run.
 name: Pages demo
 
 on:

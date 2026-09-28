@@ -6,8 +6,6 @@ The examples use fictional book titles and placeholder `example.org` links. Repl
 
 Built for reading groups and self-paced courses: readers track progress and notes in the browser, then hand the whole context to a chatbot in one step.
 
-**Live demo:** DEMO_URL_PLACEHOLDER (book club and course examples, built by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) once GitHub Pages is enabled with source "GitHub Actions").
-
 ![Course example: a week with checkable parts, audio link and the recall/note/quiz panel](docs/img/course-example.png)
 
 ## Try it
