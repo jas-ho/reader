@@ -4,6 +4,12 @@ Static reading lists with progress tracking, recall, notes and optional quizzes.
 
 The examples use fictional book titles and placeholder `example.org` links. Replace them with your own material.
 
+Built for reading groups and self-paced courses: readers track progress and notes in the browser, then hand the whole context to a chatbot in one step.
+
+**Live demo:** DEMO_URL_PLACEHOLDER (book club and course examples, built by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) once GitHub Pages is enabled with source "GitHub Actions").
+
+![Course example: a week with checkable parts, audio link and the recall/note/quiz panel](docs/img/course-example.png)
+
 ## Try it
 
 Clone or download this repository, open a terminal in its folder, then run:
@@ -125,5 +131,6 @@ Sync is off by default and requires a separately hosted compatible service and b
 | `sync.js`                      | Optional adapter to a separately hosted sync client          |
 | `styles.css`, `theme.css`      | Layout/components and editable visual defaults               |
 | `validate.mjs`, `assemble.mjs` | Check content and package an instance                        |
+| `scripts/build-demo.sh`       | Assemble both examples for the Pages demo                    |
 
 The code and examples use the [MIT license](LICENSE). Linked readings retain their owners' rights.
