@@ -1,15 +1,39 @@
 /* Optional override: set config.theme to "examples/course/theme.css". */
+/* Warm paper, navy accent, serif body with sans headings (the default is the reverse). */
 :root {
-  --accent: #3156a4;
-  --accent-soft: #e9effb;
+  --ground: #F3EDE2;
+  --surface: #FFFDF8;
+  --ink: #1F1B16;
+  --muted: #6B6155;
+  --rule: #D8CDBB;
+  --accent: #23407A;
+  --accent-soft: #E3E8F4;
+  --signal: #9C3D1F;
+  --signal-soft: #F3DED3;
+  --font-body: Charter, "Iowan Old Style", Georgia, serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --accent: #a7c1ff;
-    --accent-soft: #223454;
+    --ground: #1B1814;
+    --surface: #26221C;
+    --ink: #EFE8DC;
+    --muted: #B0A594;
+    --rule: #463F34;
+    --accent: #9DB5EE;
+    --accent-soft: #273453;
+    --signal: #E79A7B;
+    --signal-soft: #45291F;
   }
 }
 :root[data-theme="dark"] {
-  --accent: #a7c1ff;
-  --accent-soft: #223454;
+  --ground: #1B1814;
+  --surface: #26221C;
+  --ink: #EFE8DC;
+  --muted: #B0A594;
+  --rule: #463F34;
+  --accent: #9DB5EE;
+  --accent-soft: #273453;
+  --signal: #E79A7B;
+  --signal-soft: #45291F;
 }
