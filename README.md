@@ -6,6 +6,8 @@ The examples use fictional book titles and placeholder `example.org` links. Repl
 
 Built for reading groups and self-paced courses: readers track progress and notes in the browser, then hand the whole context to a chatbot in one step.
 
+**Live demo:** [jas-ho.github.io/reader](https://jas-ho.github.io/reader/) (a book club and a course with a custom theme).
+
 ![Demo: tick off a reading, write recall and a note, then hand the context to a chatbot](docs/img/reader-demo.gif)
 
 ![Course example: a week with checkable parts, audio link and the recall/note/quiz panel](docs/img/course-example.png)
