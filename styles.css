@@ -59,6 +59,8 @@ h1{
   line-height:1.25;margin:0;letter-spacing:-.005em;flex:1;text-wrap:balance;
 }
 .metadata{display:flex;flex-wrap:wrap;gap:.15rem .65rem;margin-top:.25rem;color:var(--muted);font-size:.82rem;line-height:1.45}
+.priority{border:1px solid var(--rule);border-radius:3px;padding:0 .35rem;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
+.priority-essential{border-color:var(--signal);background:var(--signal-soft);color:var(--signal);font-weight:600}
 .item[data-state="done"] .head h3,
 .item[data-state="dropped"] .head h3{color:var(--done);text-decoration:line-through}
 .item[data-state="done"] .body,

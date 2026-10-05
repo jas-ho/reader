@@ -12,7 +12,7 @@ Required properties have no default. Optional arrays default to empty; omitting 
 | -------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | List     | `schemaVersion: 1`, `id`, `title`, `sections` | `description`, `recallPrompt`, `notePrompt`, `footer`; prompts use built-in defaults               |
 | Section  | `id`, `title`, `items`                        | `description`                                                                                      |
-| Item     | `id`, `title`                                 | `byline`, `description`, `why`, `effort: []`, `links: []`, `audio: []`, `parts: []`, `quizzes: []` |
+| Item     | `id`, `title`                                 | `byline`, `description`, `why`, `priority`, `effort: []`, `links: []`, `audio: []`, `parts: []`, `quizzes: []` |
 | Part     | `id`, `title`                                 | `description`, `links: []`, `audio: []`                                                            |
 | Link     | `label`, `url`                                | None                                                                                               |
 | Audio    | `label`, `url`, `description`                 | `src` (direct HTTPS audio URL), `duration`, `warning`, `details`                                   |
@@ -21,7 +21,7 @@ Required properties have no default. Optional arrays default to empty; omitting 
 | Choice   | `id`, `text`                                  | None                                                                                               |
 
 - A list has at least one section, and each section at least one item. Ordering in arrays controls display order.
-- `description` on an item is the reading assignment: chapters, sections to skim, questions to consider. `why` is the curator's rationale. `byline` can combine author and publication date as appropriate. `effort` is an array of short strings such as `["chapters 1–3", "about 45 minutes"]`.
+- `description` on an item is the reading assignment: chapters, sections to skim, questions to consider. `why` is the curator's rationale. `byline` can combine author and publication date as appropriate. `effort` is an array of short strings such as `["chapters 1–3", "about 45 minutes"]`. Optional `priority` is `"essential"` or `"optional"`; it shows a small badge next to the byline and appears in exports. Omit it for no badge. It is display-only and does not filter or reorder readings.
 - Links have descriptive labels and absolute HTTP/HTTPS URLs. The first item link is the main source; companions and alternatives follow. A part's links belong to that part. Avoid a vague label such as “here” when the link will also appear in an export.
 - Parts are individually checkable portions of a reading. They have progress, while recall, notes and quizzes belong to the parent item.
 - An item can have zero, one or several quizzes. Each quiz has at least one question. Each question has 2–26 choices; `answer` is the correct choice's ID, not its position. Only single-choice questions are supported.

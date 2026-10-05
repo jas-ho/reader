@@ -32,6 +32,7 @@ function courseList() {
     byline: 'Example author · 2030',
     description: 'Read pages 1–4.\nThen compare the two approaches.',
     why: 'Practice identifying an argument.',
+    priority: 'essential',
     effort: ['10 minutes', 'Optional discussion'],
     links: [{ label: 'Reading guide', url: 'https://example.org/guide' }],
     parts: [{
@@ -116,6 +117,7 @@ for (const [name, modify, path] of [
   ['empty section', list => { list.sections[0].items = []; }, 'items'],
   ['wrong optional array type', list => { firstItem(list).effort = '10 minutes'; }, 'effort'],
   ['wrong text type', list => { firstItem(list).description = 12; }, 'description'],
+  ['unknown priority', list => { firstItem(list).priority = 'required'; }, 'priority'],
   ['list typo', list => { list.recalPrompt = 'Remember?'; }, 'recalPrompt'],
   ['section typo', list => { list.sections[0].titel = 'Start'; }, 'titel'],
   ['item typo', list => { firstItem(list).soruces = []; }, 'soruces'],
@@ -410,6 +412,7 @@ test('export includes authored instructions, effort and part-specific sources', 
     ...allLinks(item).flatMap(link => [link.label, link.url])]) {
     assert.ok(markdown.includes(text), `export omitted ${JSON.stringify(text)}`);
   }
+  assert.match(markdown, /Priority \(curator\): Essential/);
   assert.doesNotMatch(markdown, /Group discussion/);
 });
 

@@ -12,6 +12,7 @@ export function itemBlock(item, state, number, language = 'en') {
   const t = translator(language), quoted = text => quote(text, t);
   const lines = [`## ${number}. [${t(status(state.items[item.id]))}] ${item.title}`];
   if (item.byline) lines.push(item.byline);
+  if (item.priority) lines.push(`${t('priority')}: ${t(item.priority)}`);
   if (item.description) lines.push('', '### ' + t('readingInstructions'), quoted(item.description));
   if (item.effort?.length) lines.push('', `${t('effort')}: ${item.effort.join(' · ')}`);
   if (item.why) lines.push('', '### ' + t('whyRead'), quoted(item.why));

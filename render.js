@@ -91,8 +91,9 @@ export function renderItem(item, list, language = 'en') {
   const article = element('article', 'item'); article.dataset.id = item.id;
   const head = element('div', 'head'), heading = element('div', 'heading'), title = element('h3', '', item.title);
   heading.append(title);
-  if (item.byline || item.effort?.length) {
+  if (item.byline || item.effort?.length || item.priority) {
     const metadata = element('div', 'metadata');
+    if (item.priority) metadata.append(element('span', `priority priority-${item.priority}`, t(item.priority)));
     if (item.byline) metadata.append(element('span', 'src', item.byline));
     for (const text of item.effort || []) metadata.append(element('span', 'effort', text));
     heading.append(metadata);

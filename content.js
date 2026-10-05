@@ -2,6 +2,7 @@
 // and page report the same errors. New fields start here; see docs/extending.md.
 const SLUG = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const RESERVED = new Set(['constructor', 'prototype', '__proto__']);
+export const PRIORITIES = ['essential', 'optional'];
 export const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 export const allItems = list => list.sections.flatMap(section => section.items);
 export const quizKey = (quiz, question) => `${quiz.id}/${question.id}`;
@@ -69,9 +70,10 @@ export function validateList(list) {
     id(section.id, `${sp}.id`, sectionIDs); text(section.title, `${sp}.title`, true); text(section.description, `${sp}.description`);
     array(section.items, `${sp}.items`, 1, false).forEach((item, ii) => {
       const ip = `${sp}.items[${ii}]`;
-      if (!object(item, ip, ['id', 'title', 'byline', 'description', 'why', 'effort', 'links', 'audio', 'parts', 'quizzes'])) return;
+      if (!object(item, ip, ['id', 'title', 'byline', 'description', 'why', 'priority', 'effort', 'links', 'audio', 'parts', 'quizzes'])) return;
       id(item.id, `${ip}.id`, progressIDs); text(item.title, `${ip}.title`, true);
       for (const field of ['byline', 'description', 'why']) text(item[field], `${ip}.${field}`);
+      if (item.priority !== undefined && !PRIORITIES.includes(item.priority)) error(`${ip}.priority`, `expected one of ${PRIORITIES.join(', ')}`);
       array(item.effort, `${ip}.effort`).forEach((v, i) => text(v, `${ip}.effort[${i}]`, true));
       links(item.links, `${ip}.links`);
       audio(item.audio, `${ip}.audio`);
