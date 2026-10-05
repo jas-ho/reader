@@ -34,6 +34,10 @@ async function boot() {
     document.head.append(theme);
   }
   renderList(list, language);
+  if (config.homeLink) {
+    const home = element('a', '', config.homeLink.label); home.href = config.homeLink.url;
+    $('#home-link').append(home); $('#home-link').hidden = false;
+  }
   $('#app').hidden = false; $('#bar').hidden = false; $('#startup-error').hidden = true;
   if (loaded.warning) $('#storage-status').textContent = loaded.warning;
   const page = startReader(list, codec.decode(loaded.state), codec, storage, storageKey);

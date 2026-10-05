@@ -87,6 +87,7 @@ Keep generated IDs on subsequent edits. Review ID changes before publishing.
 | `theme`           | Optional relative CSS file, loaded after the default theme                    |
 | `storageKey`      | Optional explicit browser storage key; normally `reader:<list-id>`            |
 | `compatibility`   | Optional relative JSON file for legacy quiz identities; omitted for new lists |
+| `homeLink`        | Optional footer link `{label, url}`, e.g. back to an index of lists; `url` is a site path such as `/` or an HTTP/HTTPS URL |
 | `sync`            | Omitted or `null` disables sync entirely                                      |
 | `sync.script`     | URL/path of a separately hosted compatible sync browser client                |
 | `sync.site`       | Distinct safe ID for this list's sync namespace                               |

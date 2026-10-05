@@ -111,16 +111,31 @@ export function safeRelativePath(path) {
   return typeof path === 'string' && path.length > 0 && !path.startsWith('/') && !path.includes('\\') &&
     !/[?#:%\x00-\x20]/.test(path) && path.split('/').every(part => part && part !== '.' && part !== '..');
 }
+// A site-absolute path ("/", "/lists/") or a full HTTP/HTTPS URL; never a
+// protocol-relative "//host" path or a script URL.
+function safeHomeURL(url) {
+  if (typeof url !== 'string' || !url.trim() || /[\x00-\x20\\]/.test(url)) return false;
+  if (url.startsWith('/')) return !url.startsWith('//');
+  try { const parsed = new URL(url); return ['http:', 'https:'].includes(parsed.protocol) && !parsed.username && !parsed.password; } catch { return false; }
+}
 export function validateConfig(config) {
   if (!isRecord(config)) return ['config: expected an object'];
   const errors = [];
-  for (const field of Object.keys(config)) if (!['content', 'language', 'theme', 'compatibility', 'storageKey', 'sync'].includes(field)) errors.push(`config.${field}: unknown field`);
+  for (const field of Object.keys(config)) if (!['content', 'language', 'theme', 'compatibility', 'storageKey', 'sync', 'homeLink'].includes(field)) errors.push(`config.${field}: unknown field`);
   for (const field of ['content', 'theme', 'compatibility']) {
     if (field !== 'content' && config[field] === undefined) continue;
     if (!safeRelativePath(config[field])) errors.push(`config.${field}: expected a relative file path without traversal`);
   }
   if (config.language !== undefined && !['en', 'de'].includes(config.language)) errors.push('config.language: expected en or de');
   if (config.storageKey !== undefined && (typeof config.storageKey !== 'string' || !config.storageKey.trim())) errors.push('config.storageKey: expected a nonempty string');
+  if (config.homeLink !== undefined) {
+    const link = config.homeLink;
+    if (!isRecord(link) || Object.keys(link).some(field => !['label', 'url'].includes(field))) errors.push('config.homeLink: expected {label, url}');
+    else {
+      if (typeof link.label !== 'string' || !link.label.trim()) errors.push('config.homeLink.label: expected a nonempty string');
+      if (!safeHomeURL(link.url)) errors.push('config.homeLink.url: expected an absolute path such as / or an HTTP/HTTPS URL');
+    }
+  }
   if (config.sync != null) {
     if (!isRecord(config.sync)) errors.push('config.sync: expected an object or null');
     else {

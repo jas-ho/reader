@@ -775,6 +775,26 @@ def audio_versions(browser, screenshots):
         context.close()
 
 
+def home_link(browser):
+    context = browser.new_context()
+    page = context.new_page()
+    site = Site(page, book_club())
+    site.open()
+    expect(page.locator(".item")).to_have_count(1)
+    expect(page.locator("#home-link")).to_be_hidden()
+    context.close()
+    context = browser.new_context()
+    page = context.new_page()
+    site = Site(page, book_club())
+    site.config["homeLink"] = {"label": "All lists <b>", "url": "/"}
+    site.open()
+    link = page.locator("footer #home-link a")
+    expect(link).to_have_text("All lists <b>")
+    assert link.get_attribute("href") == "/"
+    site.healthy()
+    context.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
@@ -785,6 +805,7 @@ if __name__ == "__main__":
             interactions(browser, width, args.screenshots)
         startup_errors(browser)
         incompatible_sync_stays_local(browser)
+        home_link(browser)
         immutable_release_root(browser)
         accessibility_regressions(browser)
         german_reader(browser, args.screenshots)
