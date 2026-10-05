@@ -183,7 +183,7 @@ test('an optional home link names a site path or web URL', () => {
   for (const homeLink of [
     'https://example.org', { label: 'All lists' }, { url: '/' }, { label: ' ', url: '/' },
     { label: 'All lists', url: '//evil.example/' }, { label: 'All lists', url: 'javascript:alert(1)' },
-    { label: 'All lists', url: 'lists.html' }, { label: 'All lists', url: '/', target: '_blank' },
+    { label: 'All lists', url: 'lists.html' }, { label: 'All lists', url: 'https:example.org' }, { label: 'All lists', url: '/', target: '_blank' },
   ]) {
     const errors = validateConfig({ content: 'list.json', homeLink });
     assert.ok(errors.length && errors.every(error => error.startsWith('config.homeLink')), JSON.stringify(homeLink));

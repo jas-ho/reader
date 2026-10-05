@@ -116,6 +116,7 @@ export function safeRelativePath(path) {
 function safeHomeURL(url) {
   if (typeof url !== 'string' || !url.trim() || /[\x00-\x20\\]/.test(url)) return false;
   if (url.startsWith('/')) return !url.startsWith('//');
+  if (!/^https?:\/\//i.test(url)) return false;
   try { const parsed = new URL(url); return ['http:', 'https:'].includes(parsed.protocol) && !parsed.username && !parsed.password; } catch { return false; }
 }
 export function validateConfig(config) {
