@@ -19,7 +19,8 @@ a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visibl
 }
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
-/* Controls. Quiet: text only, muted. Primary: the one filled button in a row. Every target is at least 44px. */
+/* Controls. Quiet: text only, muted. Primary: the one filled button in a row. Targets are at least 44px,
+   except links and the gate's link-styled button inside running text. */
 button{font:inherit;cursor:pointer}
 .drop,.show,.close1,.copy1,.qreset,.audio-start,.audio-details,#exportBtn,.contents-head button,.handoff .tools button{
   background:transparent;border:0;color:var(--muted);font-size:.88rem;
@@ -56,7 +57,7 @@ h1{
 .item{scroll-margin-top:1rem;border-top:1px solid var(--rule);padding:1.1rem 0 .4rem}
 .head{display:flex;gap:.75rem;align-items:flex-start;min-height:44px}
 .box{
-  flex:0 0 auto;width:22px;height:22px;margin-top:.28rem;border:1.5px solid var(--rule);
+  flex:0 0 auto;width:22px;height:22px;margin-top:.28rem;border:1.5px solid var(--muted);
   border-radius:var(--radius);display:grid;place-items:center;color:transparent;font-size:14px;
   background:transparent;position:relative;padding:0;cursor:pointer;
   -webkit-appearance:none;appearance:none;font-family:inherit;
@@ -68,7 +69,7 @@ h1{
 .heading{flex:1;min-width:0}
 .head h3{
   font-family:var(--font-heading);font-weight:500;font-size:1.2rem;
-  line-height:1.25;margin:0;letter-spacing:-.005em;flex:1;text-wrap:balance;
+  line-height:1.25;margin:0;letter-spacing:-.005em;text-wrap:balance;
 }
 /* "Essential · Byline · ~5 min": one line of plain text; a separator may end a line, never start one. */
 .metadata{margin-top:.25rem;color:var(--muted);font-size:.82rem;line-height:1.45}
@@ -101,7 +102,7 @@ h1{
 details.closeout{margin:0}
 details.closeout > summary{
   font-size:.88rem;color:var(--ink);cursor:pointer;list-style:none;min-height:44px;scroll-margin-top:1rem;
-  display:flex;align-items:flex-start;gap:.45rem;padding:.6rem 5.5rem .4rem 0;line-height:1.4
+  display:flex;align-items:flex-start;gap:.45rem;padding:.6rem 6.5rem .4rem 0;line-height:1.4 /* room for Skip, Show, Hide (en, de) */
 }
 details.closeout > summary:hover{color:var(--accent)}
 details.closeout > summary::-webkit-details-marker{display:none}
@@ -211,11 +212,13 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
 footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);font-size:.84rem;line-height:1.6}
 
 [hidden]{display:none!important}
+h1,h2,h3,.metadata,.toc .name,.summary-text{overflow-wrap:anywhere}
 .prose{white-space:pre-line;overflow-wrap:anywhere}
 .source-links{list-style:none;padding:0;margin:.55rem 0;font-size:.94rem}
 .source-links li{overflow-wrap:anywhere}
 .jumps{list-style:none;margin:.15rem 0 .35rem;padding:0 0 0 1rem;font-size:.86rem;line-height:1.45}
-.jumps li{margin:.15rem 0;padding-left:1.25em;text-indent:-1.25em}
+.jumps li{margin:.4rem 0;padding-left:1.25em;text-indent:-1.25em}
+.jumps a{padding:.3rem 0} /* a taller tap target without breaking the line */
 .jumps li::before{content:"\21B3\00a0";content:"\21B3\00a0" / "";color:var(--muted)}
 
 /* audio */
@@ -226,6 +229,7 @@ footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);fo
 .audio-option p{margin:.3rem 0;font-size:.85rem}
 .audio-description,.audio-warning{color:var(--muted)}
 .audio-start{color:var(--accent)}
+.audio-link{display:inline-flex;align-items:center;min-height:44px}
 .audio-option audio{display:block;flex:1 1 12rem;width:100%;min-width:0;max-width:26rem}
 .audio-source{margin-top:.4rem;font-size:.85rem}
 .audio-status:empty{margin:0}

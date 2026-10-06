@@ -5,6 +5,9 @@ export const emptyState = () => ({items: {}, notes: {}, recall: {}, freeform: ''
 
 // Never reinterpret an invalid or retired answer as a valid choice. Preserve it
 // so merely viewing/editing another reading does not erase historical state.
+// A reading or part the reader has finished with: done, or skipped ("dropped").
+export const isClosed = value => value === 'done' || value === 'dropped';
+
 export function createCodec(mapping = {}) {
   return {
     decode(raw) {
@@ -62,7 +65,7 @@ export function unflatten(flat) {
     if (value == null) continue;
     const split = key.indexOf(':'), prefix = key.slice(0, split), id = key.slice(split + 1);
     if (key === 'freeform' && typeof value === 'string') state.freeform = value;
-    else if (prefix === 'item' && ['done', 'dropped'].includes(value)) assign('items', id, value);
+    else if (prefix === 'item' && isClosed(value)) assign('items', id, value);
     else if (prefix === 'note' && typeof value === 'string') assign('notes', id, value);
     else if (prefix === 'recall' && typeof value === 'string') assign('recall', id, value);
     else if (prefix === 'quiz') assign('quiz', id, value);

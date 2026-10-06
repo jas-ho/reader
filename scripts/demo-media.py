@@ -5,8 +5,8 @@
 # ///
 """Regenerate the README media from the examples: uv run scripts/demo-media.py
 
-Writes docs/img/reader-demo.gif (book club: recall and a note, Done next, the contents
-sheet, the chatbot handoff) and docs/img/course-example.png (the course with its theme).
+Writes docs/img/reader-demo.gif (book club: recall and a note, the chatbot handoff, Done next,
+the contents sheet) and docs/img/course-example.png (the course with its theme).
 Needs Playwright Chromium and gifski (https://gif.ski). Rerun after visible UI changes.
 """
 import functools
@@ -48,6 +48,8 @@ def main():
             page = browser.new_page(viewport={"width": 1200, "height": 900})
             page.goto(base + "course/")
             page.wait_for_selector("article")
+            page.wait_for_function("[...document.styleSheets].some(sheet => sheet.href?.endsWith('demo-theme.css'))")
+            page.wait_for_load_state("load")
             page.screenshot(path=str(IMG / "course-example.png"))
 
             page = browser.new_page(viewport={"width": 1100, "height": 780})

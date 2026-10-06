@@ -7,7 +7,7 @@ out=${1:?usage: build-demo.sh OUT_DIR (must not exist yet, outside this checkout
 root=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)  # left for the OS to clean up
 
-mkdir -p "$out"
+mkdir "$out"  # fails if it exists: never write into an existing folder
 for demo in book-club course; do
   inst="$work/$demo"
   mkdir -p "$inst"

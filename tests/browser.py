@@ -229,6 +229,10 @@ def check_layout(page, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), (
         f"overflow at {width}px"
     )
+    # An open dialog scrolls on its own, so the page width would not show its overflow.
+    assert page.evaluate("[...document.querySelectorAll('dialog[open]')].every(d => d.scrollWidth <= d.clientWidth)"), (
+        f"dialog overflow at {width}px"
+    )
 
 
 def download_text(page):
@@ -781,6 +785,7 @@ def contents_and_drawer(browser):
         data = nav_list()
         for i, item in enumerate(data["sections"][0]["items"]):
             item["minutes"] = 10 * (i + 1)
+        data["sections"][1]["items"][0]["minutes"] = 5  # reading 4: its time goes when it is done
         data["sections"][0]["items"][0]["effort"] = ["Read chapters one to three and the appendix before continuing with the exercises"]
         context = browser.new_context(viewport={"width": 320, "height": 700}, has_touch=True)
         context.grant_permissions(["clipboard-read", "clipboard-write"])
@@ -797,7 +802,7 @@ def contents_and_drawer(browser):
         # Counts and times are computed; a section with an untimed reading shows no time.
         expect(page.locator("#counts")).to_have_text("5 Texte" if de else "5 readings")
         expect(page.locator("#section-one .counts")).to_have_text("3 Texte · ~60 Min." if de else "3 readings · ~60 min")
-        expect(page.locator("#section-two .counts")).to_have_text("2 Texte" if de else "2 readings")
+        expect(page.locator("#section-two .counts")).to_have_text("2 Texte" if de else "2 readings")  # reading 5 has no time
         expect(card(1).locator(".metadata .minutes")).to_have_text("~10 Min." if de else "~10 min")
         check_layout(page, 320)
 
@@ -805,6 +810,9 @@ def contents_and_drawer(browser):
         summary = card(1).locator(".closeout > summary")
         expect(summary).to_have_text("›Erinnerung · Notiz · Quiz" if de else "›Recall · Note · Quiz")
         summary.click()
+        # The fields carry their prompts (built-in here: the list sets none).
+        expect(card(1).locator("textarea.recall")).to_have_attribute("placeholder", "Ohne nachzusehen: Was würdest du erklären oder hinterfragen?" if de else "Without looking back: what would you explain or question?")
+        expect(card(1).locator("textarea.notetext")).to_have_attribute("placeholder", "Eine Aussage, eine Verbindung, eine Frage oder ein offener Punkt." if de else "A claim, a connection, a question, or a loose end.")
         card(1).locator("textarea.recall").fill("x")
         expect(summary).to_have_text("›Erinnerung ✓ · Notiz · Quiz" if de else "›Recall ✓ · Note · Quiz")
         # Questions group their choices; choices carry no letters.
@@ -857,6 +865,7 @@ def contents_and_drawer(browser):
         expect(count).to_be_focused()
         # A remote change while the sheet is open repaints its states in place.
         count.click()
+        expect(sheet.locator("li").filter(has_text="Reading 4").locator(".time")).to_be_visible()
         page.evaluate("p => { const s = p.get(); s.items = {...s.items, r4: 'done'}; p.set(s); }", page.evaluate_handle("window.readerPage"))
         row4 = sheet.locator("li").filter(has_text="Reading 4")
         expect(row4).to_have_attribute("data-state", "done")
@@ -895,6 +904,37 @@ def contents_and_drawer(browser):
         context.close()
 
 
+def parts_and_deep_links(browser):
+    """Ticking a part of a finished reading never reopens it (unticking does), and a link to a
+    section opens the list there."""
+    context = browser.new_context(viewport={"width": 390, "height": 844})
+    page = context.new_page()
+    data = course()
+    data["sections"][0]["items"][0]["parts"].append({"id": "second-exercise", "title": "A second exercise"})
+    site = Site(page, data)
+    site.open()
+    card = page.locator('.item[data-id="first-reading"]')
+    card.locator(".head .box").click()
+    expect(card).to_have_attribute("data-state", "done")
+    card.locator(".item-footer > .show").click()
+    part = card.locator('.subs li[data-id="first-exercise"] .box')
+    part.click()
+    expect(card).to_have_attribute("data-state", "done")
+    part.click()  # unticking a part reopens the reading
+    expect(card).not_to_have_attribute("data-state", "done")
+    site.healthy()
+    context.close()
+
+    context = browser.new_context(viewport={"width": 390, "height": 844})
+    page = context.new_page()
+    site = Site(page, nav_list())
+    page.goto(ORIGIN + site.prefix + "#section-two")
+    page.wait_for_function("Boolean(window.readerPage)")
+    page.wait_for_function("Math.abs(document.getElementById('section-two').getBoundingClientRect().top) < 40")
+    site.healthy()
+    context.close()
+
+
 def home_link(browser):
     context = browser.new_context()
     page = context.new_page()
@@ -917,7 +957,7 @@ def home_link(browser):
 
 def quiz_result_colours(browser):
     """Quiz results use semantic tokens (defaulting to the palette), carry marks, and the
-    explanation border follows the result; a theme can separate correct from accent."""
+    row tint follows the result; a theme can separate correct from accent."""
     custom = (
         ":root{--correct:#1f7a3a;--correct-soft:#e2f0e5}"
         "@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--correct:#6fcb8a;--correct-soft:#1d2e22}}"
@@ -1048,13 +1088,23 @@ def navigation(browser):
     # A quick second tap after Done, next must not act on whatever moved under the finger.
     page.wait_for_timeout(450)  # past the guard window of the previous jump
     card(4).locator(".closeout > summary").click()
-    page.evaluate("""() => {
-        document.querySelector('.item[data-id=r4] .next1').click();
-        document.querySelector('.item[data-id=r5] .drop').click();
-    }""")
-    expect(card(4)).to_have_attribute("data-state", "done")
-    expect(card(5)).not_to_have_attribute("data-state", "dropped")
+    card(4).locator(".next1").scroll_into_view_if_needed()
+    before = page.evaluate("window.readerPage.get().items")
+    box = card(4).locator(".next1").bounding_box()
+    x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+    page.mouse.click(x, y)  # Done, next: the page jumps to reading 5
+    page.mouse.click(x, y)  # the same finger again, now over reading 5
+    page.wait_for_function("Math.abs(document.querySelector('.item[data-id=r5]').getBoundingClientRect().top) < 40")
+    assert page.evaluate("window.readerPage.get().items") == {**before, "r4": "done"}
+    # Keyboard activation right after a jump is never a stray tap.
+    page.wait_for_timeout(450)
+    jump.click(); expect(heading(1)).to_be_focused()
+    page.keyboard.press("Tab"); page.keyboard.press("Enter")
+    assert card(1).locator(".closeout").evaluate("d => d.open"), "Enter right after a jump must act"
+    card(1).locator(".closeout > summary").click()
+    page.wait_for_timeout(450)
     card(4).locator(".head .box").click()  # back to unfinished for the steps below
+    expect(card(4)).not_to_have_attribute("data-state", "done")
     heading(4).focus()
 
     # The recall skip and the position survive a reload; folds start closed.
@@ -1064,6 +1114,10 @@ def navigation(browser):
     assert page.evaluate("document.querySelectorAll('details[open]').length") == 0
     card(1).locator(".closeout > summary").click(); card(1).locator(".quiz > summary").click()
     expect(card(1).locator(".gate")).to_be_hidden()
+    # The skip itself survived, not only the answers: after a reset, the gate stays open.
+    card(1).get_by_role("button", name="Reset this quiz", exact=True).click()
+    expect(card(1).locator(".gate")).to_be_hidden()
+    expect(card(1).locator(".qbody")).to_be_visible()
 
     # Last unfinished reading: Done, next stays on it and the bar reports completion.
     for i in (1, 5):
@@ -1107,6 +1161,7 @@ if __name__ == "__main__":
         quiz_result_colours(browser)
         navigation(browser)
         contents_and_drawer(browser)
+        parts_and_deep_links(browser)
         immutable_release_root(browser)
         accessibility_regressions(browser)
         german_reader(browser, args.screenshots)

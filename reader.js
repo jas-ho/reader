@@ -1,6 +1,6 @@
 import {translator, translateShell, formatMinutes} from './locale.js';
 import {allItems, itemMinutes, validateList, validateConfig, validateCompatibility} from './content.js';
-import {createCodec, readState, quizKey, quizScore, itemScore} from './state.js';
+import {createCodec, readState, quizKey, quizScore, itemScore, isClosed} from './state.js';
 import {renderList, summarise, element, button} from './render.js';
 import {buildExport} from './export.js';
 
@@ -28,9 +28,13 @@ async function boot() {
   const storageKey = config.storageKey || `reader:${list.id}`;
   const loaded = readState(storage, storageKey, language);
   const codec = createCodec(mapping);
+  let themed = Promise.resolve();
   if (config.theme) {
     const theme = element('link'); theme.rel = 'stylesheet'; theme.href = new URL(config.theme, baseURL).href;
-    theme.onerror = () => { $('#theme-status').textContent = t('themeFailed'); };
+    themed = new Promise(settled => {
+      theme.onload = settled;
+      theme.onerror = () => { $('#theme-status').textContent = t('themeFailed'); settled(); };
+    });
     document.head.append(theme);
   }
   renderList(list, language);
@@ -40,7 +44,7 @@ async function boot() {
   }
   $('#app').hidden = false; $('#bar').hidden = false; $('#startup-error').hidden = true;
   if (loaded.warning) $('#storage-status').textContent = loaded.warning;
-  const page = startReader(list, codec.decode(loaded.state), codec, storage, storageKey);
+  const page = startReader(list, codec.decode(loaded.state), codec, storage, storageKey, themed);
   if (config.sync) {
     $('#sync-status').textContent = t('syncHelp');
     try {
@@ -50,11 +54,12 @@ async function boot() {
   }
 }
 
-function startReader(list, initialState, codec, storage, storageKey) {
+function startReader(list, initialState, codec, storage, storageKey, themed) {
   let state = initialState, timer = null;
   const items = allItems(list), cards = new Map(), quizPainters = new Map();
   // View state: where the reader is and what they chose to see. It stays on this device, never
-  // syncs and never changes progress. Only the reader's own actions open or close things.
+  // syncs and never changes progress. Nothing opens by itself; a change of progress (local or synced)
+  // folds a reading the reader had shown.
   const viewKey = `${storageKey}:view`, view = readView(), skipped = new Set(view.skipped), shown = new Set(), painted = new Map();
   function readView() {
     try { const v = JSON.parse(storage.getItem(viewKey)); return {at: typeof v?.at === 'string' ? v.at : null, skipped: Array.isArray(v?.skipped) ? v.skipped.filter(id => typeof id === 'string') : []}; }
@@ -64,26 +69,30 @@ function startReader(list, initialState, codec, storage, storageKey) {
     try { storage.setItem(viewKey, JSON.stringify({at: currentCard()?.dataset.id ?? null, skipped: [...skipped]})); } catch { /* view state is a convenience */ }
   }
   const reducedMotion = () => matchMedia('(prefers-reduced-motion:reduce)').matches;
-  // Where the reader is: the reading they last interacted with or jumped to, until they scroll
-  // themselves; then the last card whose top has reached the top of the screen (below its 1rem
-  // scroll margin); above the list, none. A second tap during a smooth scroll still moves on.
-  let anchor = null, scrolledByReader = false;
-  const scrollKeys = ['PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End', ' '];
-  // Scrolling inside a dialog (contents, handoff) does not move the reader through the list.
-  function readerScrolls(event) { if (!event.target.closest?.('dialog')) { anchor = null; scrolledByReader = true; } }
-  addEventListener('wheel', readerScrolls, {passive: true});
-  addEventListener('touchmove', readerScrolls, {passive: true});
-  addEventListener('keydown', event => {
-    if (scrollKeys.includes(event.key) && !event.target.closest?.('textarea, input, button, summary, audio')) readerScrolls(event);
-  });
-  addEventListener('focusin', event => { const card = event.target.closest?.('.item'); if (card) anchor = card; });
+  // Where the reader is: the reading, section or top they last interacted with or jumped to,
+  // until the page scrolls by any other means (wheel, touch, keys, scrollbar, find); then the
+  // last card whose top has reached the top of the screen (below its 1rem scroll margin); above
+  // the list, none. A jump's own scrolling, smooth or not, keeps the anchor it set.
+  // `quietUntil` marks scrolling the reader caused through the page itself: a jump (smooth ones end
+  // at scrollend, or after 1.5s where that event is missing) or focus bringing a reading into view.
+  let anchor = null, quietUntil = 0;
+  const quiet = ms => { quietUntil = Math.max(quietUntil, performance.now() + ms); }; // never shortens a jump's
+  addEventListener('scroll', () => { if (performance.now() > quietUntil) anchor = null; }, {passive: true});
+  addEventListener('scrollend', () => { quietUntil = 0; });
+  // A finger or wheel during a smooth jump takes over from it.
+  for (const type of ['wheel', 'touchstart']) addEventListener(type, event => { if (!event.target.closest?.('dialog')) quietUntil = 0; }, {passive: true});
+  function jumpScroll(el, smooth) {
+    quiet(smooth ? 1500 : 100);
+    el.scrollIntoView({behavior: smooth ? 'smooth' : 'auto', block: 'start'});
+  }
+  addEventListener('focusin', event => { const card = event.target.closest?.('.item'); if (card) { anchor = card; quiet(100); } });
   function currentCard() {
     if (anchor?.matches('.item')) return anchor;
     let current = null;
     for (const card of cards.values()) { if (card.getBoundingClientRect().top <= 24) current = card; else break; }
     return current;
   }
-  const unfinished = item => !['done', 'dropped'].includes(state.items[item.id]);
+  const unfinished = item => !isClosed(state.items[item.id]);
   // The first unfinished reading from position `start` in display order, wrapping round.
   const indexOf = card => items.findIndex(item => item.id === card.dataset.id);
   const unfinishedFrom = start => [...items.slice(start), ...items.slice(0, start)].find(unfinished) || null;
@@ -94,16 +103,16 @@ function startReader(list, initialState, codec, storage, storageKey) {
     return nextAfter(currentCard());
   }
   // After a jump, the finger that tapped is over different content; a quick second tap must not
-  // drop, open or follow whatever moved under it.
+  // drop, open or follow whatever moved under it. Keyboard activation (detail 0) is never a stray tap.
   let tapGuardUntil = 0;
   $('#readings').addEventListener('click', event => {
-    if (performance.now() < tapGuardUntil) { event.preventDefault(); event.stopPropagation(); }
+    if (event.detail > 0 && performance.now() < tapGuardUntil) { event.preventDefault(); event.stopPropagation(); }
   }, true);
   // Go to a reading card, a section or the top (the .wrap): bring it to the top of the screen,
   // focus its heading and make it where the reader is, even where the page cannot scroll that far.
   function goTo(target, smooth = true) {
     tapGuardUntil = performance.now() + 400;
-    target.scrollIntoView({behavior: smooth && !reducedMotion() ? 'smooth' : 'auto', block: 'start'});
+    jumpScroll(target, smooth && !reducedMotion());
     target.querySelector(target.matches('.item') ? '.head h3' : 'h1, h2').focus({preventScroll: true});
     anchor = target;
   }
@@ -125,21 +134,19 @@ function startReader(list, initialState, codec, storage, storageKey) {
     if (document.activeElement === input) input.setSelectionRange(Math.min(start, value.length), Math.min(end, value.length));
   }
   function paintProgress(node) {
-    const id = node.dataset.id, value = state.items[id], closed = ['done', 'dropped'].includes(value);
+    const id = node.dataset.id, value = state.items[id], closed = isClosed(value);
     if (closed) node.dataset.state = value; else delete node.dataset.state;
     const box = node.querySelector(':scope > .head .box, :scope > .box');
     box.setAttribute('aria-pressed', String(value === 'done'));
     const item = items.find(item => item.id === id);
     if (!item) return;
-    // Act on real changes only, so a sync repaint never stops audio or folds what the reader opened.
-    if (painted.has(id) && painted.get(id) !== value) {
-      shown.delete(id);
-      if (closed) for (const player of node.querySelectorAll('audio')) player.pause();
-    }
+    // A change of progress folds a reading the reader had shown; a sync repaint without one does not.
+    if (painted.has(id) && painted.get(id) !== value) shown.delete(id);
     painted.set(id, value);
     box.setAttribute('aria-label', t('markDone', {title: item.title}) + (value === 'dropped' ? t('droppedLabel') : ''));
     const show = node.querySelector('.item-footer > .show'), open = shown.has(id);
     node.toggleAttribute('data-show', open);
+    if (closed && !open) for (const player of node.querySelectorAll('audio')) player.pause(); // nothing plays out of sight
     show.textContent = t(open ? 'hide' : 'show');
     show.setAttribute('aria-label', t(open ? 'hideLabel' : 'showLabel', {title: item.title}));
     show.setAttribute('aria-expanded', String(open));
@@ -183,9 +190,10 @@ function startReader(list, initialState, codec, storage, storageKey) {
     });
     for (const part of card.querySelectorAll('.subs > li')) {
       part.querySelector('.box').addEventListener('click', () => {
-        toggle(part);
+        const ticked = toggle(part) === 'done';
         const allDone = (item.parts || []).every(part => state.items[part.id] === 'done');
-        if (allDone) state.items[item.id] = 'done'; else if (state.items[item.id] === 'done') delete state.items[item.id];
+        // The last part completes the reading; unticking a part reopens it; ticking never reopens.
+        if (allDone) state.items[item.id] = 'done'; else if (!ticked && state.items[item.id] === 'done') delete state.items[item.id];
         if (allDone) drawer.open = false;
         paintProgress(card); paintDrawer(item); renderProgress(); save();
         if (allDone) land(card.querySelector('.head .box')); // the part's row is now hidden
@@ -228,6 +236,7 @@ function startReader(list, initialState, codec, storage, storageKey) {
         buttons.forEach((option, index) => {
           const id = question.choices[index].id;
           option.setAttribute('aria-disabled', String(answered));
+          option.setAttribute('aria-pressed', String(answered && id === chosen)); // which answer was given, without colour
           option.classList.toggle('correct', answered && id === question.answer);
           option.classList.toggle('wrong', answered && id === chosen && id !== question.answer);
         });
@@ -240,7 +249,7 @@ function startReader(list, initialState, codec, storage, storageKey) {
     reset.addEventListener('click', () => {
       for (const question of quiz.questions) codec.clearAnswer(state, quizKey(quiz, question));
       save(); paintDrawer(item);
-      (body.hidden ? skip : reset).focus({preventScroll: true}); // stay put; the gate may be back
+      land(body.hidden ? skip : reset); // the gate may be back, far above the reset button
     });
     body.append(reset); details.append(gate, body); card.querySelector('.qslot').append(details);
     function paint() {
@@ -265,9 +274,9 @@ function startReader(list, initialState, codec, storage, storageKey) {
   const contents = $('#contents'), count = $('#count'), rows = new Map();
   let navigating = false; // closing to jump somewhere: the jump places focus, not the dialog
   function entry(text, time, target) {
-    const go = button('toc'), mark = element('span', 'mark'), state = element('span', 'sr');
+    const go = button('toc'), mark = element('span', 'mark'), status = element('span', 'sr');
     mark.setAttribute('aria-hidden', 'true');
-    go.append(mark, element('span', 'name', text), state);
+    go.append(mark, element('span', 'name', text), status);
     if (time) go.append(element('span', 'time', time));
     go.addEventListener('click', () => { navigating = true; contents.close(); goTo(target, false); });
     return go;
@@ -276,7 +285,7 @@ function startReader(list, initialState, codec, storage, storageKey) {
   $('#contentsList').append(top);
   for (const section of list.sections) {
     const heading = element('h3'), ul = element('ul');
-    heading.append(entry(section.title, summarise(section.items, language), $(`#section-${section.id}`)));
+    heading.append(entry(section.title, summarise(section.items, language), document.getElementById(`section-${section.id}`)));
     for (const item of section.items) {
       const li = element('li'), minutes = itemMinutes(item);
       li.append(entry(item.title, minutes === null ? '' : formatMinutes(minutes, language), cards.get(item.id)));
@@ -286,7 +295,7 @@ function startReader(list, initialState, codec, storage, storageKey) {
   }
   function paintContents() {
     for (const [id, li] of rows) {
-      const value = state.items[id], closed = ['done', 'dropped'].includes(value);
+      const value = state.items[id], closed = isClosed(value);
       if (closed) li.dataset.state = value; else delete li.dataset.state;
       li.querySelector('.mark').textContent = value === 'done' ? '✓' : value === 'dropped' ? '–' : '';
       li.querySelector('.sr').textContent = `, ${t(closed ? value : 'open')}`;
@@ -305,7 +314,10 @@ function startReader(list, initialState, codec, storage, storageKey) {
   function renderProgress() {
     const open = items.filter(unfinished);
     const countText = open.length ? t('left', {count: open.length}) : t('allDone');
-    if (count.textContent !== countText) { count.textContent = $('#contentsCount').textContent = countText; count.setAttribute('aria-label', t('contentsLabel', {count: countText})); }
+    if (count.textContent !== countText) {
+      count.textContent = $('#contentsCount').textContent = $('#progress').textContent = countText; // #progress announces it
+      count.setAttribute('aria-label', t('contentsLabel', {count: countText}));
+    }
     jump.hidden = !open.length;
     paintContents();
   }
@@ -322,27 +334,32 @@ function startReader(list, initialState, codec, storage, storageKey) {
   const page = {
     get: () => codec.encode(state),
     set: value => {
+      // A remote change can hide what the reader had focused (e.g. a reading marked done elsewhere):
+      // note where focus was before repainting, then put it on that reading's title.
+      const active = document.activeElement, owner = active?.closest?.('.item');
       state = codec.decode(value); persist(); paintAll();
-      // A remote change can hide what the reader had focused (e.g. a reading marked done elsewhere).
-      const active = document.activeElement;
-      if (active && active !== document.body && !(active.checkVisibility ? active.checkVisibility() : active.offsetParent)) {
-        active.closest('.item')?.querySelector('.head h3').focus({preventScroll: true});
-      }
+      if (owner && !(active.checkVisibility ? active.checkVisibility() : active.offsetParent)) owner.querySelector('.head h3').focus({preventScroll: true});
     },
     onChange: null
   };
   window.readerPage = page;
   paintAll();
-  // Return to the reading the reader was at (this device only). The browser's own restoration
-  // would race the asynchronous render, so the reader owns it; fonts and theme can shift layout
-  // once more, so restore again then unless the reader has scrolled meanwhile.
+  // Start where the link points (#section-…) or else where the reader was (this device only). The
+  // list renders after the browser looked for the fragment, and the browser's own restoration would
+  // race the render, so the reader owns both. Other fragments (a sync link) start at the top. Fonts
+  // and a theme can still shift layout, so place it again once they load, unless the reader has
+  // moved on meanwhile.
   history.scrollRestoration = 'manual';
-  const resume = !location.hash && view.at && cards.get(view.at);
-  if (resume) {
-    resume.scrollIntoView({block: 'start'});
-    // A custom theme and web fonts can still change heights after the first paint.
+  let linked = null;
+  try { linked = location.hash.length > 1 ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null; } catch { /* malformed fragment */ }
+  const start = linked?.matches('.bucket, .item') ? linked : !location.hash && view.at && cards.get(view.at);
+  if (start) {
+    const place = () => { jumpScroll(start, false); anchor = start; };
+    let interacted = false;
+    for (const type of ['pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(type, () => { interacted = true; }, {once: true, passive: true});
+    place();
     const loaded = document.readyState === 'complete' ? Promise.resolve() : new Promise(done => addEventListener('load', done, {once: true}));
-    Promise.all([loaded, document.fonts?.ready]).then(() => { if (!scrolledByReader) resume.scrollIntoView({block: 'start'}); });
+    Promise.all([loaded, themed]).then(() => document.fonts?.ready).then(() => { if (!interacted && anchor === start) place(); });
   }
   function setBarHeight() { document.documentElement.style.setProperty('--bar-h', `${$('#bar').offsetHeight}px`); }
   setBarHeight(); new ResizeObserver(setBarHeight).observe($('#bar'));

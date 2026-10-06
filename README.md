@@ -128,7 +128,7 @@ Sync is off by default and requires a separately hosted compatible service and b
 | File                           | Responsibility                                               |
 | ------------------------------ | ------------------------------------------------------------ |
 | `locale.js`                    | English/German UI and export wording                         |
-| `content.js`                   | Validate content/configuration and find items/links          |
+| `content.js`                   | Validate content/configuration; items and reading time       |
 | `render.js`                    | Build the page from content using safe DOM operations        |
 | `reader.js`                    | Load files and wire reading interactions                     |
 | `state.js`                     | Persistence, quiz identity and optional legacy compatibility |
@@ -136,6 +136,7 @@ Sync is off by default and requires a separately hosted compatible service and b
 | `sync.js`                      | Optional adapter to a separately hosted sync client          |
 | `styles.css`, `theme.css`      | Layout/components and editable visual defaults               |
 | `validate.mjs`, `assemble.mjs` | Check content and package an instance                        |
-| `scripts/build-demo.sh`       | Assemble both examples for the Pages demo                    |
+| `scripts/build-demo.sh`        | Assemble both examples for the Pages demo                    |
+| `scripts/demo-media.py`        | Regenerate the README GIF and screenshot from the examples   |
 
 The code and examples use the [MIT license](LICENSE). Linked readings retain their owners' rights.

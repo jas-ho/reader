@@ -18,11 +18,6 @@ export function totalMinutes(items) {
   for (const item of items) { const minutes = itemMinutes(item); if (minutes === null) return null; sum += minutes; }
   return sum;
 }
-// Reading-source links. Audio is exported separately with its coverage notes.
-export function allLinks(item) {
-  const links = [...(item.links || []), ...(item.parts || []).flatMap(part => part.links || [])];
-  return links.filter((link, index) => links.findIndex(other => other.url === link.url) === index);
-}
 
 export function validateList(list) {
   const errors = [], progressIDs = new Set(), quizIDs = new Set(), sectionIDs = new Set();

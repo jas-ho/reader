@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   allItems,
-  allLinks,
   itemMinutes,
   totalMinutes,
   validateCompatibility,
@@ -92,10 +91,8 @@ test('a physical-book list requires no links, parts or quizzes', () => {
   const list = minimalList();
   assert.deepEqual(validateList(list), []);
   assert.deepEqual(allItems(list), [list.sections[0].items[0]]);
-  assert.deepEqual(allLinks(list.sections[0].items[0]), []);
   Object.assign(firstItem(list), { links: [], parts: [], quizzes: [], effort: [] });
   assert.deepEqual(validateList(list), []);
-  assert.deepEqual(allLinks(firstItem(list)), []);
 });
 
 test('a course supports Unicode, multiline text, parts and multiple quizzes', () => {
@@ -105,11 +102,8 @@ test('a course supports Unicode, multiline text, parts and multiple quizzes', ()
   assert.equal(allItems(list).length, 2);
 });
 
-test('content lookup follows display order and deduplicates links across parts', () => {
+test('content lookup follows display order', () => {
   const list = courseList();
-  const item = firstItem(list);
-  item.parts[0].links.push({ label: 'Same guide again', url: item.links[0].url });
-  assert.deepEqual(allLinks(item), [item.links[0], item.parts[0].links[0]]);
   list.sections.unshift({ id: 'preface', title: 'Preface', items: [{ id: 'welcome', title: 'Welcome' }] });
   assert.deepEqual(allItems(list).map(item => item.id), ['welcome', 'chapter-one', 'discussion']);
 });
@@ -442,7 +436,7 @@ test('export includes authored instructions, effort and part-specific sources', 
   const item = firstItem(list);
   for (const text of [item.title, item.byline, item.why, ...item.description.split('\n'), ...item.effort,
     item.parts[0].title, ...item.parts[0].description.split('\n'),
-    ...allLinks(item).flatMap(link => [link.label, link.url])]) {
+    ...[...item.links, ...item.parts.flatMap(part => part.links || [])].flatMap(link => [link.label, link.url])]) {
     assert.ok(markdown.includes(text), `export omitted ${JSON.stringify(text)}`);
   }
   assert.match(markdown, /Priority \(curator\): Essential/);
@@ -475,7 +469,6 @@ test('audio versions keep source pages and coverage in exports, including a shar
   const discussion = {label: 'Author interview', url: 'https://example.org/interview', description: 'English discussion of the exercise; not a reading.'};
   item.audio = [recording]; item.parts[0].audio = [discussion];
   assert.deepEqual(validateList(list), []);
-  assert.equal(allLinks(item).filter(link => link.url === recording.url).length, 1);
   for (const language of ['en', 'de']) {
     const exported = buildExport(list, emptyState(), item.id, language);
     for (const audio of [recording, discussion]) for (const field of ['label', 'url', 'description', 'duration', 'warning', 'details']) if (audio[field]) assert.ok(exported.includes(audio[field]));
@@ -563,4 +556,22 @@ test('export names the reading time of items and parts', () => {
   const markdown = buildExport(list, emptyState(), item.id);
   assert.match(markdown, /\nTime: ~25 min\n/);
   assert.ok(markdown.includes(`${item.parts[0].title} (~10 min)`), markdown);
+});
+
+test('export keeps every source with its owner, once, with its jumps, under list and section context', () => {
+  const list = courseList(), item = firstItem(list);
+  list.description = 'Read section one first.';
+  item.links.push({ label: 'Same guide, chapter 2', url: item.links[0].url, jumps: [{ label: 'Figure 3', url: `${item.links[0].url}#:~:text=Figure%203` }] });
+  assert.deepEqual(validateList(list), []);
+  const markdown = buildExport(list, emptyState(), item.id);
+  assert.ok(markdown.includes('Figure 3: '), 'jumps of a second link to the same URL survive');
+  for (const link of item.parts[0].links) assert.equal(markdown.split(`- ${link.label}: ${link.url}`).length - 1, 1, 'part sources appear once, under their part');
+  assert.match(markdown, /## About this list \(curator\)\n> Read section one first\./);
+  list.sections[0].description = 'Week one sets up the vocabulary.';
+  const single = buildExport(list, emptyState(), item.id);
+  assert.ok(single.includes(`Section: ${list.sections[0].title}\n> Week one sets up the vocabulary.`), single);
+  const full = buildExport(list, emptyState());
+  assert.ok(full.includes(`## Section: ${list.sections[0].title}\n> Week one sets up the vocabulary.`), full);
+  assert.equal(full.split('Week one sets up').length - 1, 1, 'a full export states each section once');
+  assert.ok(buildExport(list, emptyState(), item.id, 'de').includes(`Abschnitt: ${list.sections[0].title}`));
 });

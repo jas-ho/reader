@@ -19,12 +19,12 @@ export const messages = {
     unsupportedState: "Saved state in {key} has an unsupported shape and has been left untouched. Recover this entry in this browser's developer tools under Local Storage before resetting it.",
     nonTextState: 'Saved state in {key}.{field} contains non-text notes. It has been left untouched.',
     markDone: 'Mark {title} done', droppedLabel: ' (not doing this)',
-    quiz: 'Quiz', quizToken: 'Quiz {correct}/{answered}',
+    quiz: 'Quiz', quizToken: 'Quiz {correct}/{answered} right',
     skipRecall: 'show the quiz without it.', recallGate: 'Write your recall first, or',
     correct: 'Correct.', incorrect: 'Incorrect. Correct answer: {answer}.', resetQuiz: 'Reset this quiz',
-    score: '{correct}/{answered} right', questions: '{count} questions', questionsOne: '{count} question', left: '{count} left', allDone: 'All done', nextShort: 'Next ↓', nextLabel: 'Go to the next unfinished reading',
-    close: 'Close', closeLabel: 'Close: {title}', doneNext: 'Done, next', doneNextLabel: 'Mark {title} done and go to the next unfinished reading',
-    nextReading: 'Next', nextReadingLabel: 'Go to the next unfinished reading after {title}',
+    score: '{correct}/{answered} right', questions: '{count} questions', questionsOne: '{count} question', left: '{count} left', allDone: 'All done', nextShort: 'Next ↓', nextLabel: 'Next: go to the next unfinished reading',
+    close: 'Close', closeLabel: 'Close: {title}', doneNext: 'Done, next', doneNextLabel: 'Done, next: mark {title} done and go to the next unfinished reading',
+    nextReading: 'Next', nextReadingLabel: 'Next: go to the next unfinished reading after {title}',
     show: 'Show', showLabel: 'Show {title}', hide: 'Hide', hideLabel: 'Hide {title}',
     minutes: '~{count} min', hours: '~{count} h', readings: '{count} readings', readingsOne: '{count} reading', essentialTime: 'essential {time}',
     contents: 'Contents', contentsLabel: '{count}, contents', top: 'Top of page', time: 'Time',
@@ -34,7 +34,7 @@ export const messages = {
     syncUnavailable: 'Sync is unavailable. Notes still save in this browser.', syncUpgrade: 'Sync client build 2 or later is required. Notes still save in this browser.',
     nothingRecorded: 'Nothing recorded.', done: 'done', dropped: 'dropped', open: 'open',
     priority: 'Priority (curator)', essential: 'Essential', optional: 'Optional',
-    readingInstructions: 'Reading instructions (curator)', effort: 'Effort', whyRead: 'Why read this (curator)', sources: 'Sources and related links',
+    readingInstructions: 'Reading instructions (curator)', section: 'Section', aboutList: 'About this list (curator)', effort: 'Effort', whyRead: 'Why read this (curator)', sources: 'Sources and related links',
     noSource: 'No source link provided. Ask me for the relevant text if needed.', parts: 'Parts (reader progress)', readerRecall: 'Recall (reader)', readerNote: 'Note (reader)',
     exportScore: 'Quiz: {correct} correct / {answered} answered ({total} questions available).',
     oneReading: 'one reading', myNotes: 'my reading notes', readerScratch: 'Scratch (reader)',
@@ -60,12 +60,12 @@ export const messages = {
     unsupportedState: 'Die gespeicherten Daten unter {key} haben ein nicht unterstütztes Format und bleiben unverändert. Sichere diesen Eintrag in den Entwicklerwerkzeugen des Browsers unter Local Storage, bevor du ihn zurücksetzt.',
     nonTextState: 'Die gespeicherten Daten unter {key}.{field} enthalten Notizen, die kein Text sind. Sie bleiben unverändert.',
     markDone: '{title} als gelesen markieren', droppedLabel: ' (ausgelassen)',
-    quiz: 'Quiz', quizToken: 'Quiz {correct}/{answered}',
+    quiz: 'Quiz', quizToken: 'Quiz {correct}/{answered} richtig',
     skipRecall: 'zeig das Quiz gleich.', recallGate: 'Schreibe zuerst auf, woran du dich erinnerst, oder',
     correct: 'Richtig.', incorrect: 'Falsch. Richtige Antwort: {answer}.', resetQuiz: 'Dieses Quiz zurücksetzen',
-    score: '{correct}/{answered} richtig', questions: '{count} Fragen', questionsOne: '{count} Frage', left: '{count} offen', allDone: 'Alles erledigt', nextShort: 'Weiter ↓', nextLabel: 'Zum nächsten offenen Text',
-    close: 'Schließen', closeLabel: 'Schließen: {title}', doneNext: 'Fertig, weiter', doneNextLabel: '{title} als gelesen markieren und zum nächsten offenen Text',
-    nextReading: 'Weiter', nextReadingLabel: 'Zum nächsten offenen Text nach {title}',
+    score: '{correct}/{answered} richtig', questions: '{count} Fragen', questionsOne: '{count} Frage', left: '{count} offen', allDone: 'Alles erledigt', nextShort: 'Weiter ↓', nextLabel: 'Weiter: zum nächsten offenen Text',
+    close: 'Schließen', closeLabel: 'Schließen: {title}', doneNext: 'Fertig, weiter', doneNextLabel: 'Fertig, weiter: {title} als gelesen markieren und zum nächsten offenen Text',
+    nextReading: 'Weiter', nextReadingLabel: 'Weiter: zum nächsten offenen Text nach {title}',
     show: 'Zeigen', showLabel: '{title} zeigen', hide: 'Ausblenden', hideLabel: '{title} ausblenden',
     minutes: '~{count} Min.', hours: '~{count} Std.', readings: '{count} Texte', readingsOne: '{count} Text', essentialTime: 'Kernlektüre {time}',
     contents: 'Inhalt', contentsLabel: '{count}, Inhalt', top: 'Seitenanfang', time: 'Zeit',
@@ -75,7 +75,7 @@ export const messages = {
     syncUnavailable: 'Sync ist nicht verfügbar. Notizen werden weiterhin in diesem Browser gespeichert.', syncUpgrade: 'Sync-Client-Version 2 oder neuer ist erforderlich. Notizen werden weiterhin in diesem Browser gespeichert.',
     nothingRecorded: 'Nichts festgehalten.', done: 'gelesen', dropped: 'ausgelassen', open: 'offen',
     priority: 'Priorität (Kuration)', essential: 'Kernlektüre', optional: 'Optional',
-    readingInstructions: 'Leseauftrag (Kuration)', effort: 'Aufwand', whyRead: 'Warum dieser Text (Kuration)', sources: 'Quellen und weiterführende Links',
+    readingInstructions: 'Leseauftrag (Kuration)', section: 'Abschnitt', aboutList: 'Über diese Liste (Kuration)', effort: 'Aufwand', whyRead: 'Warum dieser Text (Kuration)', sources: 'Quellen und weiterführende Links',
     noSource: 'Kein Quellenlink vorhanden. Frage mich bei Bedarf nach dem Text.', parts: 'Abschnitte (mein Lesefortschritt)', readerRecall: 'Erinnerung (von mir)', readerNote: 'Notiz (von mir)',
     exportScore: 'Quiz: {correct} richtig / {answered} beantwortet ({total} Fragen insgesamt).',
     oneReading: 'ein Lesetext', myNotes: 'meine Lesenotizen', readerScratch: 'Freie Notizen (von mir)',
@@ -94,7 +94,7 @@ export function translator(language = 'en') {
   };
 }
 
-// Reading time for display: minutes up to 90, then hours to the nearest half hour.
+// Reading time for display: minutes below 90, then hours to the nearest half hour.
 export function formatMinutes(minutes, language = 'en') {
   const t = translator(language);
   return minutes < 90 ? t('minutes', {count: minutes}) : t('hours', {count: (Math.round(minutes / 30) / 2).toLocaleString(language)});

@@ -28,6 +28,7 @@
   }
 }
 :root[data-theme="dark"]{
+  color-scheme:dark;
   --ground:#0C1514;
   --surface:#1A2725;
   --ink:#E6ECE6;
@@ -50,6 +51,7 @@
   --backdrop: rgba(0,0,0,.45);
   color-scheme: light dark;
 }
+:root[data-theme="light"] { color-scheme: light; }
 
 /* Meanings, derived from the palette. A theme whose accent or signal is red or green sets these
    so a correct answer never looks like an error. They resolve on :root, so palette overrides in a

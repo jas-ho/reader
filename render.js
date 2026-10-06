@@ -26,7 +26,7 @@ function renderLinks(links = [], className = 'source-links') {
 }
 function field(item, className, label, prompt) {
   const wrap = element('div', 'field'), lab = element('label', '', label), input = element('textarea', className);
-  input.id = `${className}-${item.id}`; input.rows = 2; input.placeholder = prompt;
+  input.id = `${className}/${item.id}`; input.rows = 2; input.placeholder = prompt; // IDs are slugs: the slash keeps namespaces apart
   lab.htmlFor = input.id; wrap.append(lab, input); return wrap;
 }
 function renderAudio(recordings, t, ownerId) {
@@ -34,7 +34,7 @@ function renderAudio(recordings, t, ownerId) {
   recordings.forEach((recording, index) => {
     const entry = element('div', 'audio-option'), toolbar = element('div', 'audio-toolbar');
     const source = element('div', 'audio-source'); source.hidden = true;
-    source.id = `audio-source-${ownerId}-${index}`;
+    source.id = `audio/${ownerId}/${index}`;
     const link = element('a', '', recording.label);
     link.href = recording.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
     source.append(link);
@@ -103,7 +103,7 @@ export function renderItem(item, list, language = 'en') {
   for (const text of item.effort || []) metadata.append(element('span', 'effort', text));
   if (metadata.childElementCount) heading.append(metadata);
   head.append(button('box', '✓', t('markDone', {title: item.title})), heading);
-  const body = element('div', 'body'); body.id = `${item.id}-body`;
+  const body = element('div', 'body'); body.id = `body/${item.id}`;
   // The instruction first; the curator's reason after it, quieter.
   if (item.description) body.append(element('p', 'what prose', item.description));
   if (item.why) body.append(element('p', 'why prose', item.why));
