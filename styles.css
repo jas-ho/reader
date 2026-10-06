@@ -14,7 +14,7 @@ html{scroll-padding-bottom:calc(var(--bar-h,64px) + 1rem)}
 
 a{color:var(--accent);text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:.16em}
 a:hover{text-decoration-color:var(--accent)}
-a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,input:focus-visible{
+a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,input:focus-visible,.head h3:focus-visible{
   outline:2px solid var(--accent);outline-offset:3px;border-radius:2px
 }
 
@@ -50,9 +50,9 @@ h1{
   -webkit-appearance:none;appearance:none;font-family:inherit;
 }
 .box::before{content:"";position:absolute;inset:-11px}
-.item[data-state="done"] .box{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
-.item[data-state="dropped"] .box{border-color:var(--muted);color:transparent;position:relative}
-.item[data-state="dropped"] .box::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:10px;height:2px;background:var(--muted);border-radius:1px}
+.item[data-state="done"] > .head .box{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.item[data-state="dropped"] > .head .box{border-color:var(--muted);color:transparent;position:relative}
+.item[data-state="dropped"] > .head .box::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:10px;height:2px;background:var(--muted);border-radius:1px}
 .heading{flex:1;min-width:0}
 .head h3{
   font-family:var(--font-heading);font-weight:500;font-size:1.2rem;
@@ -65,9 +65,9 @@ h1{
 .item[data-state="dropped"] .head h3{color:var(--done);text-decoration:line-through}
 .item[data-state="done"] .body,
 .item[data-state="dropped"] .body{display:none}
+.item[data-state][data-show] .body{display:block} /* "Show" on a done or skipped reading; progress unchanged */
 .item[data-state] .item-footer{border-top:none;margin-top:.3rem}
 .item[data-state] .drop{display:none}
-.item[data-state] details.closeout > summary{padding-right:0}
 
 .body{margin-top:.7rem}
 .what{margin:0 0 .7rem;font-size:.95rem}
@@ -94,7 +94,11 @@ details.closeout > summary::-webkit-details-marker{display:none}
 details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"] .chevron{transform:rotate(90deg)}
 .summary-text{min-width:0}
 details.closeout > summary .sumtxt{color:var(--muted);font-size:.8rem;margin-left:.3rem}
-.item-footer > .drop{position:absolute;right:0;top:.2rem;max-width:5.3rem}
+.item-footer > .drop,.item-footer > .show{position:absolute;right:0;top:.2rem;max-width:5.3rem}
+.show{display:none}
+.item[data-state] .item-footer > .show{display:block}
+details.closeout > summary{scroll-margin-top:1rem}
+.exits{margin-top:.4rem}
 .closeout .field{margin-top:.6rem}
 .closeout label{
   display:block;font-family:var(--font-ui);
@@ -116,7 +120,7 @@ details.closeout > summary .sumtxt{color:var(--muted);font-size:.8rem;margin-lef
   display:inline-flex;align-items:center;gap:.4rem;
 }
 .tools button:hover,.barrow > button:hover{border-color:var(--accent)}
-.drop{
+.drop,.show{
   background:transparent;border:none;color:var(--muted);cursor:pointer;
   font-family:var(--font-ui);
   font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
@@ -145,10 +149,10 @@ details.closeout > summary .sumtxt{color:var(--muted);font-size:.8rem;margin-lef
 }
 @media(min-width:700px){ .barrow{padding:.5rem 2rem} }
 .bar .count{font-family:var(--font-heading);font-size:1.25rem;line-height:1;white-space:nowrap}
-.bar .hint{color:var(--muted);font-size:.85rem;flex:1;min-width:0;display:flex}
-.bar .hint .jump{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;background:none;border:none;padding:.5rem 0;margin:0;font:inherit;color:var(--muted);cursor:pointer}
-.bar .hint .jump .t{color:var(--accent);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:.16em}
-.bar .hint .jump:hover .t{text-decoration-color:var(--accent)}
+.bar .hint{font-size:.85rem;flex:0 0 auto;display:flex;margin-right:auto}
+.bar .hint .jump{white-space:nowrap;background:none;border:none;padding:0 .3rem;margin:0;min-height:44px;min-width:44px;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:.16em}
+.bar .hint .jump:hover{text-decoration-color:var(--accent)}
+#syncMount{white-space:nowrap}
 .bar .tx2{display:none}
 @media(min-width:700px){ .bar .tx2{display:inline} }
 /* The handoff is a dialog, separate from the fixed bar and its keyboard rules. */
@@ -189,7 +193,7 @@ details.closeout > summary .sumtxt{color:var(--muted);font-size:.8rem;margin-lef
 .rat{font-size:.86rem;line-height:1.5;color:var(--muted);border-left:2px solid var(--correct);padding:.15rem 0 .15rem .7rem;margin:.2rem 0 .3rem;display:none}
 .q.answered .rat{display:block}
 .q.answered:has(.opt.wrong) .rat{border-left-color:var(--wrong)}
-.qreset{font-family:var(--font-ui);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--accent);border:none;cursor:pointer;padding:.4rem 0;margin-top:.3rem}
+.qreset{font-family:var(--font-ui);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--accent);border:none;cursor:pointer;padding:.4rem 0;margin-top:.3rem;min-height:44px}
 
 footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);font-size:.84rem;line-height:1.6}
 

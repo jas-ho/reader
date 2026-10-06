@@ -52,8 +52,59 @@ async function boot() {
 
 function startReader(list, initialState, codec, storage, storageKey) {
   let state = initialState, timer = null;
-  const items = allItems(list), cards = new Map(), quizPainters = new Map(), skipped = new Set();
+  const items = allItems(list), cards = new Map(), quizPainters = new Map();
   const finePointer = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  // View state: where the reader is and what they chose to see. It stays on this device, never
+  // syncs and never changes progress. Only the reader's own actions open or close things.
+  const viewKey = `${storageKey}:view`, view = readView(), skipped = new Set(view.skipped), shown = new Set(), painted = new Map();
+  function readView() {
+    try { const v = JSON.parse(storage.getItem(viewKey)); return {at: typeof v?.at === 'string' ? v.at : null, skipped: Array.isArray(v?.skipped) ? v.skipped.filter(id => typeof id === 'string') : []}; }
+    catch { return {at: null, skipped: []}; }
+  }
+  function saveView() {
+    try { storage.setItem(viewKey, JSON.stringify({at: currentCard()?.dataset.id ?? null, skipped: [...skipped]})); } catch { /* view state is a convenience */ }
+  }
+  const reducedMotion = () => matchMedia('(prefers-reduced-motion:reduce)').matches;
+  // The reading the reader is at: the one holding focus, else the last card whose top has
+  // reached the top of the screen (below its 1rem scroll margin), else none (above the list).
+  // Where the reader is: the reading they last interacted with or jumped to, until they scroll
+  // themselves; then the last card whose top has reached the top of the screen (below its 1rem
+  // scroll margin); above the list, none. A second tap during a smooth scroll still moves on.
+  let anchor = null, scrolledByReader = false;
+  const scrollKeys = ['PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End', ' '];
+  function readerScrolls() { anchor = null; scrolledByReader = true; }
+  addEventListener('wheel', readerScrolls, {passive: true});
+  addEventListener('touchmove', readerScrolls, {passive: true});
+  addEventListener('keydown', event => {
+    if (scrollKeys.includes(event.key) && !event.target.closest?.('textarea, input, button, summary, audio')) readerScrolls();
+  });
+  addEventListener('focusin', event => { const card = event.target.closest?.('.item'); if (card) anchor = card; });
+  function currentCard() {
+    if (anchor) return anchor;
+    let current = null;
+    for (const card of cards.values()) { if (card.getBoundingClientRect().top <= 24) current = card; else break; }
+    return current;
+  }
+  const unfinished = item => !['done', 'dropped'].includes(state.items[item.id]);
+  // The first unfinished reading after `card`, wrapping round; the first unfinished overall when there is no card.
+  function nextAfter(card) {
+    const start = card ? items.findIndex(item => item.id === card.dataset.id) + 1 : 0;
+    return [...items.slice(start), ...items.slice(0, start)].find(unfinished) || null;
+  }
+  // After a jump, the finger that tapped is over different content; a quick second tap must not
+  // drop, open or follow whatever moved under it.
+  let tapGuardUntil = 0;
+  $('#readings').addEventListener('click', event => {
+    if (performance.now() < tapGuardUntil) { event.preventDefault(); event.stopPropagation(); }
+  }, true);
+  function goTo(item, smooth = true) {
+    tapGuardUntil = performance.now() + 400;
+    const card = cards.get(item.id);
+    card.scrollIntoView({behavior: smooth && !reducedMotion() ? 'smooth' : 'auto', block: 'start'});
+    card.querySelector('.head h3').focus({preventScroll: true}); anchor = card;
+  }
+  // Put focus on an element and bring it just into view (scroll-padding keeps it clear of the bar).
+  function land(el) { el.focus({preventScroll: true}); el.scrollIntoView({block: 'nearest'}); }
   function persist() {
     try { storage.setItem(storageKey, JSON.stringify(codec.encode(state))); }
     catch { $('#storage-status').textContent = t('saveFailed'); }
@@ -70,14 +121,24 @@ function startReader(list, initialState, codec, storage, storageKey) {
     if (document.activeElement === input) input.setSelectionRange(Math.min(start, value.length), Math.min(end, value.length));
   }
   function paintProgress(node) {
-    const value = state.items[node.dataset.id];
-    if (['done', 'dropped'].includes(value)) node.dataset.state = value; else delete node.dataset.state;
-    node.querySelector('.box').setAttribute('aria-pressed', String(value === 'done'));
-    const item = items.find(item => item.id === node.dataset.id);
-    if (item) {
-      if (['done', 'dropped'].includes(value)) for (const player of node.querySelectorAll('audio')) player.pause();
-      node.querySelector('.box').setAttribute('aria-label', t('markDone', {title: item.title}) + (value === 'dropped' ? t('droppedLabel') : ''));
+    const id = node.dataset.id, value = state.items[id], closed = ['done', 'dropped'].includes(value);
+    if (closed) node.dataset.state = value; else delete node.dataset.state;
+    const box = node.querySelector(':scope > .head .box, :scope > .box');
+    box.setAttribute('aria-pressed', String(value === 'done'));
+    const item = items.find(item => item.id === id);
+    if (!item) return;
+    // Act on real changes only, so a sync repaint never stops audio or folds what the reader opened.
+    if (painted.has(id) && painted.get(id) !== value) {
+      shown.delete(id);
+      if (closed) for (const player of node.querySelectorAll('audio')) player.pause();
     }
+    painted.set(id, value);
+    box.setAttribute('aria-label', t('markDone', {title: item.title}) + (value === 'dropped' ? t('droppedLabel') : ''));
+    const show = node.querySelector('.item-footer > .show'), open = shown.has(id);
+    node.toggleAttribute('data-show', open);
+    show.textContent = t(open ? 'hide' : 'show');
+    show.setAttribute('aria-label', t(open ? 'hideLabel' : 'showLabel', {title: item.title}));
+    show.setAttribute('aria-expanded', String(open));
   }
   function paintDrawer(item) {
     const card = cards.get(item.id), tokens = [], score = itemScore(item, state);
@@ -86,6 +147,9 @@ function startReader(list, initialState, codec, storage, storageKey) {
     if (score.answered) tokens.push(t('quizToken', score));
     card.querySelector('.sumtxt').textContent = tokens.length ? `· ${tokens.join(' · ')}` : '';
     card.querySelector('.closeout').dataset.filled = tokens.length ? '1' : '0';
+    const next = card.querySelector('.next1'), done = state.items[item.id] === 'done';
+    next.textContent = t(done ? 'nextReading' : 'doneNext');
+    next.setAttribute('aria-label', t(done ? 'nextReadingLabel' : 'doneNextLabel', {title: item.title}));
     for (const paint of quizPainters.get(item.id) || []) paint();
   }
   function toggle(node, dropped = false) {
@@ -96,18 +160,31 @@ function startReader(list, initialState, codec, storage, storageKey) {
   }
   for (const item of items) {
     const card = $(`.item[data-id="${item.id}"]`); cards.set(item.id, card);
-    card.querySelector('.head .box').addEventListener('click', () => {
-      const next = toggle(card); paintDrawer(item); renderProgress(); save();
-      if (next === 'done') { card.querySelector('.closeout').open = true; if (finePointer) card.querySelector('.recall').focus({preventScroll: true}); }
+    const drawer = card.querySelector('.closeout'), headBox = card.querySelector('.head .box');
+    // Finishing or skipping a reading compacts it; nothing opens by itself.
+    function settle(next) { if (next) drawer.open = false; paintDrawer(item); renderProgress(); save(); }
+    headBox.addEventListener('click', () => settle(toggle(card)));
+    card.querySelector('.drop').addEventListener('click', () => { settle(toggle(card, true)); land(headBox); });
+    card.querySelector('.item-footer > .show').addEventListener('click', () => {
+      if (shown.has(item.id)) shown.delete(item.id); else shown.add(item.id);
+      paintProgress(card);
     });
-    card.querySelector('.drop').addEventListener('click', () => { toggle(card, true); paintDrawer(item); renderProgress(); save(); card.querySelector('.head .box').focus({preventScroll: true}); });
+    card.querySelector('.close1').addEventListener('click', () => { drawer.open = false; land(drawer.querySelector('summary')); });
+    card.querySelector('.next1').addEventListener('click', () => {
+      if (state.items[item.id] !== 'done') { state.items[item.id] = 'done'; paintProgress(card); }
+      settle(true);
+      const target = nextAfter(card);
+      // The card has just collapsed under the reader; jump rather than glide from a shifted position.
+      if (target) goTo(target, false); else land(card.querySelector('.head h3'));
+    });
     for (const part of card.querySelectorAll('.subs > li')) {
       part.querySelector('.box').addEventListener('click', () => {
         toggle(part);
         const allDone = (item.parts || []).every(part => state.items[part.id] === 'done');
         if (allDone) state.items[item.id] = 'done'; else if (state.items[item.id] === 'done') delete state.items[item.id];
+        if (allDone) drawer.open = false;
         paintProgress(card); paintDrawer(item); renderProgress(); save();
-        if (allDone) card.querySelector('.head .box').focus({preventScroll: true});
+        if (allDone) land(card.querySelector('.head .box')); // the part's row is now hidden
       });
     }
     for (const [selector, field] of [['.recall', 'recall'], ['.notetext', 'notes']]) {
@@ -125,7 +202,7 @@ function startReader(list, initialState, codec, storage, storageKey) {
     summary.append(element('span', '', quiz.title), scoreLabel); details.append(summary);
     const gate = element('div', 'gate'), skip = button('qreset', t('skipRecall'));
     gate.append(element('span', '', t('recallGate')), skip);
-    skip.addEventListener('click', () => { skipped.add(item.id); paintDrawer(item); summary.focus(); });
+    skip.addEventListener('click', () => { skipped.add(item.id); paintDrawer(item); body.querySelector('.opt')?.focus({preventScroll: true}); });
     const body = element('div', 'qbody'), painters = [];
     quiz.questions.forEach((question, index) => {
       const key = quizKey(quiz, question), row = element('div', 'q'); row.dataset.question = key;
@@ -154,7 +231,11 @@ function startReader(list, initialState, codec, storage, storageKey) {
       });
     });
     const reset = button('qreset', t('resetQuiz'));
-    reset.addEventListener('click', () => { for (const question of quiz.questions) codec.clearAnswer(state, quizKey(quiz, question)); save(); paintDrawer(item); summary.focus(); });
+    reset.addEventListener('click', () => {
+      for (const question of quiz.questions) codec.clearAnswer(state, quizKey(quiz, question));
+      save(); paintDrawer(item);
+      (body.hidden ? skip : reset).focus({preventScroll: true}); // stay put; the gate may be back
+    });
     body.append(reset); details.append(gate, body); card.querySelector('.qslot').append(details);
     function paint() {
       const score = quizScore(quiz, state), gated = !state.recall[item.id]?.trim() && !score.answered && !skipped.has(item.id);
@@ -169,24 +250,15 @@ function startReader(list, initialState, codec, storage, storageKey) {
   const scratch = $('#freeform'); scratch.value = state.freeform;
   scratch.addEventListener('input', () => { state.freeform = scratch.value; save(); });
   scratch.addEventListener('blur', saveNow);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
-  window.addEventListener('pagehide', saveNow);
-  const jump = button('jump', ''); $('#hint').append(jump);
-  let nextItem = null;
-  jump.addEventListener('click', () => {
-    if (!nextItem) return;
-    const card = cards.get(nextItem.id);
-    card.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'start'});
-    card.querySelector('.box').focus({preventScroll: true});
-  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { saveNow(); saveView(); } });
+  window.addEventListener('pagehide', () => { saveNow(); saveView(); });
+  const jump = button('jump', t('nextShort'), t('nextLabel')); $('#hint').append(jump);
+  jump.addEventListener('click', () => { const target = nextAfter(currentCard()); if (target) goTo(target); });
   function renderProgress() {
     const open = items.filter(item => !['done', 'dropped'].includes(state.items[item.id]));
     const countText = open.length ? t('left', {count: open.length}) : t('allDone');
     if ($('#count').textContent !== countText) $('#count').textContent = countText;
-    nextItem = open[0];
-    jump.hidden = !nextItem;
-    jump.replaceChildren();
-    if (nextItem) jump.append(t('next'), element('span', 't', nextItem.title));
+    jump.hidden = !open.length;
   }
   function paintAll() {
     for (const item of items) {
@@ -200,11 +272,29 @@ function startReader(list, initialState, codec, storage, storageKey) {
   }
   const page = {
     get: () => codec.encode(state),
-    set: value => { state = codec.decode(value); persist(); paintAll(); },
+    set: value => {
+      state = codec.decode(value); persist(); paintAll();
+      // A remote change can hide what the reader had focused (e.g. a reading marked done elsewhere).
+      const active = document.activeElement;
+      if (active && active !== document.body && !(active.checkVisibility ? active.checkVisibility() : active.offsetParent)) {
+        active.closest('.item')?.querySelector('.head h3').focus({preventScroll: true});
+      }
+    },
     onChange: null
   };
   window.readerPage = page;
   paintAll();
+  // Return to the reading the reader was at (this device only). The browser's own restoration
+  // would race the asynchronous render, so the reader owns it; fonts and theme can shift layout
+  // once more, so restore again then unless the reader has scrolled meanwhile.
+  history.scrollRestoration = 'manual';
+  const resume = !location.hash && view.at && cards.get(view.at);
+  if (resume) {
+    resume.scrollIntoView({block: 'start'});
+    // A custom theme and web fonts can still change heights after the first paint.
+    const loaded = document.readyState === 'complete' ? Promise.resolve() : new Promise(done => addEventListener('load', done, {once: true}));
+    Promise.all([loaded, document.fonts?.ready]).then(() => { if (!scrolledByReader) resume.scrollIntoView({block: 'start'}); });
+  }
   function setBarHeight() { document.documentElement.style.setProperty('--bar-h', `${$('#bar').offsetHeight}px`); }
   setBarHeight(); new ResizeObserver(setBarHeight).observe($('#bar'));
 

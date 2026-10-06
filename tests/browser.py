@@ -219,7 +219,10 @@ class Site:
 
 
 def storage(page):
-    return page.evaluate("Object.fromEntries(Object.entries(localStorage))")
+    """Saved reading state; the device-local view key (position, skipped gates) is separate."""
+    return page.evaluate(
+        "Object.fromEntries(Object.entries(localStorage).filter(([k]) => !k.endsWith(':view')))"
+    )
 
 
 def check_layout(page, width):
@@ -517,14 +520,15 @@ def accessibility_regressions(browser):
     first.locator("summary").click()
     expect(first.locator(".qbody")).to_be_visible()
     # This answer came from storage. Neither recall nor a skip keeps the body
-    # open after reset, so keyboard focus must escape the newly hidden body.
+    # open after reset, so focus moves to the gate that replaces it, in place
+    # (not up to the summary, which on a phone is screens away).
     first.get_by_role("button", name="Reset this quiz", exact=True).click()
     expect(first.locator(".qbody")).to_be_hidden()
-    expect(first.locator("summary")).to_be_focused()
+    expect(first.get_by_role("button", name="show the quiz without recall", exact=True)).to_be_focused()
     second.locator("summary").click()
     expect(second.locator(".qbody")).to_be_hidden()
     first.get_by_role("button", name="show the quiz without recall", exact=True).click()
-    expect(first.locator("summary")).to_be_focused()
+    expect(first.locator(".opt").first).to_be_focused()
     expect(first.locator(".qbody")).to_be_visible()
     expect(second.locator(".qbody")).to_be_visible()
     first.locator('[data-choice="finite"]').first.click()
@@ -847,6 +851,129 @@ def quiz_result_colours(browser):
             context.close()
 
 
+def nav_list():
+    """Five long readings in two sections, two with quizzes, for navigation and folding."""
+    long = " ".join(["A paragraph that makes each reading taller than a phone screen."] * 30)
+    quiz = lambda n: [{"id": f"q{n}", "title": "Check", "questions": [
+        {"id": f"q{n}-{i}", "prompt": f"Question {i}?", "choices": [
+            {"id": "a", "text": "Answer A"}, {"id": "b", "text": "Answer B"}], "answer": "a"}
+        for i in range(3)]}]
+    item = lambda i: {"id": f"r{i}", "title": f"Reading {i}", "description": long,
+                      **({"quizzes": quiz(i)} if i < 3 else {})}
+    return {"schemaVersion": 1, "id": "nav-test", "title": "Navigation test", "sections": [
+        {"id": "one", "title": "One", "items": [item(1), item(2), item(3)]},
+        {"id": "two", "title": "Two", "items": [item(4), item(5)]}]}
+
+
+def navigation(browser):
+    """Exits at the end of the drawer, positional next, Show, sync-safe view state, restore."""
+    context = browser.new_context(viewport={"width": 390, "height": 844})
+    page = context.new_page()
+    site = Site(page, nav_list())
+    site.open()
+    card = lambda i: page.locator(f'.item[data-id="r{i}"]')
+    heading = lambda i: card(i).locator(".head h3")
+    top = lambda loc: loc.evaluate("el => el.getBoundingClientRect().top")
+    jump = page.locator("#hint .jump")
+    expect(jump).to_have_text("Next ↓")
+
+    # From the masthead, Next goes to the first unfinished reading, then advances each time.
+    # Taps follow each other quickly, as on a phone: no waiting for the smooth scroll to settle.
+    jump.click(); expect(heading(1)).to_be_focused()
+    jump.click(); expect(heading(2)).to_be_focused()
+    jump.click(); expect(heading(3)).to_be_focused()
+    page.wait_for_function("Math.abs(document.querySelector('.item[data-id=r3]').getBoundingClientRect().top) < 40")
+
+    # Ticking done no longer opens the drawer.
+    card(3).locator(".head .box").click()
+    expect(card(3)).to_have_attribute("data-state", "done")
+    assert not card(3).locator(".closeout").evaluate("d => d.open")
+    # Show reveals a done reading without changing progress; Hide folds it again.
+    show = card(3).locator(".item-footer > .show")
+    expect(show).to_have_text("Show"); expect(card(3).locator(".body")).to_be_hidden()
+    show.click()
+    expect(card(3).locator(".body")).to_be_visible(); expect(show).to_have_attribute("aria-expanded", "true")
+    expect(card(3)).to_have_attribute("data-state", "done")
+    show.click(); expect(card(3).locator(".body")).to_be_hidden()
+
+    # End of a long drawer: Close folds it and lands on its summary, in view.
+    card(1).locator(".closeout > summary").click()
+    card(1).locator(".quiz > summary").click()
+    card(1).locator(".gate button").click()
+    for q in card(1).locator(".q").all():
+        q.locator(".opt").first.click()
+    card(1).locator(".close1").scroll_into_view_if_needed()
+    card(1).locator(".close1").click()
+    summary = card(1).locator(".closeout > summary")
+    assert not card(1).locator(".closeout").evaluate("d => d.open")
+    expect(summary).to_be_focused()
+    assert 0 <= top(summary) < 844 - 60, top(summary)
+
+    # A remote update leaves view state alone: an open drawer and a shown reading stay as they are.
+    card(2).locator(".closeout > summary").click()
+    show.click()
+    page.evaluate("p => { const s = p.get(); s.notes = {...s.notes, r5: 'from another device'}; p.set(s); }", page.evaluate_handle("window.readerPage"))
+    assert card(2).locator(".closeout").evaluate("d => d.open")
+    expect(card(3).locator(".body")).to_be_visible()
+
+    # Done, next: marks done, folds, and moves to the next unfinished reading after this one.
+    card(2).locator(".next1").scroll_into_view_if_needed()
+    expect(card(2).locator(".next1")).to_have_text("Done, next")
+    card(2).locator(".next1").click()
+    expect(card(2)).to_have_attribute("data-state", "done")
+    assert not card(2).locator(".closeout").evaluate("d => d.open")
+    expect(heading(4)).to_be_focused()
+    assert abs(top(card(4))) < 40, top(card(4))
+    assert not card(4).locator(".closeout").evaluate("d => d.open")
+
+    # A quick second tap after Done, next must not act on whatever moved under the finger.
+    page.wait_for_timeout(450)  # past the guard window of the previous jump
+    card(4).locator(".closeout > summary").click()
+    page.evaluate("""() => {
+        document.querySelector('.item[data-id=r4] .next1').click();
+        document.querySelector('.item[data-id=r5] .drop').click();
+    }""")
+    expect(card(4)).to_have_attribute("data-state", "done")
+    expect(card(5)).not_to_have_attribute("data-state", "dropped")
+    card(4).locator(".head .box").click()  # back to unfinished for the steps below
+    heading(4).focus()
+
+    # The recall skip and the position survive a reload; folds start closed.
+    page.reload(); page.wait_for_function("Boolean(window.readerPage)")
+    page.wait_for_timeout(300)
+    assert abs(top(card(4))) < 60, top(card(4))
+    assert page.evaluate("document.querySelectorAll('details[open]').length") == 0
+    card(1).locator(".closeout > summary").click(); card(1).locator(".quiz > summary").click()
+    expect(card(1).locator(".gate")).to_be_hidden()
+
+    # Last unfinished reading: Done, next stays on it and the bar reports completion.
+    for i in (1, 5):
+        card(i).locator(".head .box").click()
+    card(4).locator(".closeout > summary").click()
+    card(4).locator(".next1").click()
+    expect(heading(4)).to_be_focused()
+    expect(page.locator("#count")).to_have_text("All done")
+    expect(jump).to_be_hidden()
+    check_layout(page, 390)
+    site.healthy()
+    context.close()
+
+    # 320 px, German, with a sync pill in the bar: Next stays whole and tappable.
+    context = browser.new_context(viewport={"width": 320, "height": 640})
+    page = context.new_page()
+    site = Site(page, nav_list())
+    site.config["language"] = "de"
+    site.open()
+    page.evaluate("document.querySelector('#syncMount').append(Object.assign(document.createElement('button'), {textContent: 'Sync aus'}))")
+    jump = page.locator("#hint .jump")
+    expect(jump).to_have_text("Weiter ↓")
+    box = jump.bounding_box()
+    assert box["width"] >= 44 and box["height"] >= 44, box
+    assert jump.evaluate("el => el.scrollWidth <= el.clientWidth"), "Next label truncated"
+    check_layout(page, 320)
+    context.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
@@ -859,6 +986,7 @@ if __name__ == "__main__":
         incompatible_sync_stays_local(browser)
         home_link(browser)
         quiz_result_colours(browser)
+        navigation(browser)
         immutable_release_root(browser)
         accessibility_regressions(browser)
         german_reader(browser, args.screenshots)

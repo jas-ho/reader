@@ -90,6 +90,7 @@ export function renderItem(item, list, language = 'en') {
   const t = translator(language);
   const article = element('article', 'item'); article.dataset.id = item.id;
   const head = element('div', 'head'), heading = element('div', 'heading'), title = element('h3', '', item.title);
+  title.tabIndex = -1; // where navigation lands: reading context, not the progress toggle
   heading.append(title);
   if (item.byline || item.effort?.length || item.priority) {
     const metadata = element('div', 'metadata');
@@ -99,7 +100,7 @@ export function renderItem(item, list, language = 'en') {
     heading.append(metadata);
   }
   head.append(button('box', '✓', t('markDone', {title: item.title})), heading);
-  const body = element('div', 'body');
+  const body = element('div', 'body'); body.id = `${item.id}-body`;
   if (item.why) body.append(element('p', 'why prose', item.why));
   if (item.description) body.append(element('p', 'what prose', item.description));
   if (item.links?.length) body.append(renderLinks(item.links));
@@ -123,11 +124,16 @@ export function renderItem(item, list, language = 'en') {
   summaryText.append(element('span', '', t(item.quizzes?.length ? 'recallNoteQuiz' : 'recallAndNote')), element('span', 'sumtxt'));
   summary.append(chevron, summaryText);
   const tools = element('div', 'tools'); tools.append(button('copy1', t('handoff')));
+  // The drawer ends where the reader ends up: close it, or finish and move on.
+  const exits = element('div', 'tools exits');
+  exits.append(button('close1', t('close'), t('closeLabel', {title: item.title})), button('next1'));
   drawer.append(summary,
     field(item, 'recall', t('recall'), list.recallPrompt || t('recallPrompt')),
     field(item, 'notetext', t('note'), list.notePrompt || t('notePrompt')),
-    element('div', 'qslot'), tools);
-  footer.append(drawer, button('drop', t('drop')));
+    element('div', 'qslot'), tools, exits);
+  // Skip and Show share one slot: Skip while the reading is open, Show once it is done or skipped.
+  const show = button('show'); show.setAttribute('aria-controls', body.id); show.setAttribute('aria-expanded', 'false');
+  footer.append(drawer, button('drop', t('drop')), show);
   article.append(head, body, footer);
   return article;
 }
