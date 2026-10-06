@@ -1,6 +1,6 @@
-import {allItems, allLinks} from './content.js';
+import {allItems, allLinks, itemMinutes} from './content.js';
 import {itemScore} from './state.js';
-import {translator} from './locale.js';
+import {translator, formatMinutes} from './locale.js';
 
 const quote = (text, t) => text?.trim() ? '> ' + text.trim().replace(/\r?\n/g, '\n> ') : t('nothingRecorded');
 const audioDescription = recording => [recording.duration, recording.description, recording.warning, recording.details].filter(Boolean).join('\n');
@@ -14,6 +14,8 @@ export function itemBlock(item, state, number, language = 'en') {
   if (item.byline) lines.push(item.byline);
   if (item.priority) lines.push(`${t('priority')}: ${t(item.priority)}`);
   if (item.description) lines.push('', '### ' + t('readingInstructions'), quoted(item.description));
+  const minutes = itemMinutes(item);
+  if (minutes !== null) lines.push('', `${t('time')}: ${formatMinutes(minutes, language)}`);
   if (item.effort?.length) lines.push('', `${t('effort')}: ${item.effort.join(' · ')}`);
   if (item.why) lines.push('', '### ' + t('whyRead'), quoted(item.why));
   lines.push('', '### ' + t('sources'));
@@ -28,7 +30,8 @@ export function itemBlock(item, state, number, language = 'en') {
     lines.push('', '### ' + t('parts'));
     for (const part of item.parts) {
       const value = state.items[part.id];
-      lines.push(`- [${value === 'done' ? 'x' : value === 'dropped' ? '-' : ' '}] ${part.title}`);
+      const time = part.minutes === undefined ? '' : ` (${formatMinutes(part.minutes, language)})`;
+      lines.push(`- [${value === 'done' ? 'x' : value === 'dropped' ? '-' : ' '}] ${part.title}${time}`);
       if (part.description) lines.push(quoted(part.description));
       for (const link of part.links || []) lines.push(`  - ${link.label}: ${link.url}`, ...(link.jumps || []).map(jump => `    - ${jump.label}: ${jump.url}`));
       for (const recording of part.audio || []) lines.push(`  - ${t('audio')}: ${recording.label}: ${recording.url}`, quoted(audioDescription(recording)));

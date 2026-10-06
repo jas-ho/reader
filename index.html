@@ -12,14 +12,14 @@
 </head>
 <body>
   <div class="wrap">
-    <header class="mast"><h1>Reader</h1><p id="description" class="dek prose"></p></header>
+    <header class="mast"><h1>Reader</h1><p id="description" class="dek prose"></p><p id="counts" class="counts"></p></header>
     <p id="startup-error" role="status" data-i18n="loading">Loading reading list. For a downloaded copy, start a local web server as described in the README. Otherwise reload the page or contact the person who shared it.</p>
     <noscript data-i18n="noScript">This reader needs JavaScript to load the reading list and save your notes.</noscript>
     <div id="app" hidden>
       <main id="readings"></main>
       <section class="pad"><h2 data-i18n="scratch">Scratch</h2><p data-i18n="scratchHelp">Anything that does not belong to one reading. Saved as you type.</p><textarea id="freeform" rows="6" placeholder="…" aria-label="Scratch notes" data-i18n-label="scratchLabel"></textarea></section>
       <footer>
-        <p data-i18n="exportHelp">Use in your chatbot prepares the reading instructions, source links, recall and notes to copy or download.</p>
+        <p data-i18n="exportHelp">The clipboard button at the end of each reading prepares its instructions, source links, recall and notes for your chatbot; Export all does the same for the whole list.</p>
         <p id="storage-status" role="status" data-i18n="localStorage">Progress and notes stay in this browser.</p>
         <p id="theme-status" role="status"></p>
         <p id="sync-status" role="status"></p>
@@ -29,7 +29,7 @@
     </div>
   </div>
   <div class="bar" id="bar" hidden><div class="barrow">
-    <span class="count" id="count" aria-live="polite"></span>
+    <button type="button" class="count" id="count" aria-haspopup="dialog"></button>
     <span class="hint" id="hint"></span><span id="syncMount"></span>
     <button type="button" id="exportBtn" aria-label="Export all notes" data-i18n-label="exportAll"><span data-i18n="exportAllShort">Export all</span><span class="tx2" data-i18n="exportNotesSuffix"> notes</span></button>
   </div></div>
@@ -37,7 +37,11 @@
     <h2 id="handoffTitle" data-i18n="handoff">Use in your chatbot</h2>
     <p id="handoffHelp" data-i18n="handoffHelp">Copy this into your chatbot, or attach the downloaded file. It includes reading instructions, source links, your recall and your notes.</p>
     <label for="handoffText" data-i18n="context">Context for your chatbot</label><textarea id="handoffText" readonly inputmode="none" rows="10"></textarea>
-    <p id="copyMsg"></p><div class="tools"><button type="button" id="notesDownload" data-i18n="download">Download context (.md)</button><button type="button" id="handoffClose" data-i18n="close">Close</button></div>
+    <p id="copyMsg" role="status"></p><div class="tools"><button type="button" id="copyBtn" class="primary" data-i18n="copy">Copy</button><button type="button" id="notesDownload" data-i18n="download">Download context (.md)</button><button type="button" id="handoffClose" data-i18n="close">Close</button></div>
+  </dialog>
+  <dialog class="contents" id="contents" aria-labelledby="contentsTitle">
+    <div class="contents-head"><h2 id="contentsTitle" data-i18n="contents">Contents</h2><span id="contentsCount" class="contents-count"></span><button type="button" id="contentsClose" data-i18n="close">Close</button></div>
+    <nav id="contentsList" aria-labelledby="contentsTitle"></nav>
   </dialog>
   <script type="module" src="./reader.js"></script>
 </body>

@@ -3,12 +3,16 @@ import assert from 'node:assert/strict';
 import {
   allItems,
   allLinks,
+  itemMinutes,
+  totalMinutes,
   validateCompatibility,
   validateConfig,
   validateList,
 } from '../content.js';
 import { createCodec, emptyState, flatten, quizKey, readState, unflatten } from '../state.js';
 import { buildExport } from '../export.js';
+import { formatMinutes } from '../locale.js';
+import { summarise } from '../render.js';
 
 // Synthetic examples only. The real curriculum and migration map belong to
 // the separately maintained instance, not the reusable reader's test suite.
@@ -509,3 +513,54 @@ for (const scope of ['item', 'part']) {
     errorsAt(validateList(list), 'src');
   });
 }
+
+test('reading time is whole minutes on items and parts', () => {
+  const message = 'expected whole minutes from 1 to 1000';
+  for (const bad of [0, -5, 2.5, 1001, '10', null, true]) {
+    const onItem = courseList(); firstItem(onItem).minutes = bad;
+    assert.deepEqual(validateList(onItem), [`list.sections[0].items[0].minutes: ${message}`], String(bad));
+    const onPart = courseList(); firstItem(onPart).parts[0].minutes = bad;
+    assert.deepEqual(validateList(onPart), [`list.sections[0].items[0].parts[0].minutes: ${message}`], String(bad));
+  }
+  const list = courseList(); firstItem(list).minutes = 1000; firstItem(list).parts[0].minutes = 1;
+  assert.deepEqual(validateList(list), []);
+});
+
+test('an item takes its own minutes, else the sum of fully timed parts; totals need every reading', () => {
+  assert.equal(itemMinutes({minutes: 20, parts: [{minutes: 5}]}), 20); // never added together
+  assert.equal(itemMinutes({parts: [{minutes: 5}, {minutes: 7}]}), 12);
+  assert.equal(itemMinutes({parts: [{minutes: 5}, {}]}), null);
+  assert.equal(itemMinutes({parts: []}), null);
+  assert.equal(itemMinutes({}), null);
+  assert.equal(totalMinutes([{minutes: 600}, {minutes: 600}]), 1200); // derived totals are unbounded
+  assert.equal(totalMinutes([{minutes: 5}, {}]), null);
+  assert.equal(totalMinutes([]), 0);
+});
+
+test('times read as minutes up to 90, then hours to the nearest half hour, per language', () => {
+  assert.equal(formatMinutes(7), '~7 min');
+  assert.equal(formatMinutes(89), '~89 min');
+  assert.equal(formatMinutes(90), '~1.5 h');
+  assert.equal(formatMinutes(245), '~4 h');
+  assert.equal(formatMinutes(255), '~4.5 h');
+  assert.equal(formatMinutes(7, 'de'), '~7 Min.');
+  assert.equal(formatMinutes(255, 'de'), '~4,5 Std.');
+});
+
+test('counts and totals are computed, with a singular and only when every time is known', () => {
+  const a = {minutes: 30, priority: 'essential'}, b = {minutes: 60}, c = {};
+  assert.equal(summarise([a, b], 'en', true), '2 readings · ~1.5 h · essential ~30 min');
+  assert.equal(summarise([a], 'en', true), '1 reading · ~30 min'); // all essential: no separate line
+  assert.equal(summarise([a, c], 'en', true), '2 readings · essential ~30 min'); // an untimed optional reading hides only the total
+  assert.equal(summarise([a, c]), '2 readings');
+  assert.equal(summarise([a, b], 'de'), '2 Texte · ~1,5 Std.');
+  assert.equal(summarise([b], 'de'), '1 Text · ~60 Min.');
+});
+
+test('export names the reading time of items and parts', () => {
+  const list = courseList(), item = firstItem(list);
+  item.minutes = 25; item.parts[0].minutes = 10;
+  const markdown = buildExport(list, emptyState(), item.id);
+  assert.match(markdown, /\nTime: ~25 min\n/);
+  assert.ok(markdown.includes(`${item.parts[0].title} (~10 min)`), markdown);
+});

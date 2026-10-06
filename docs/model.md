@@ -12,20 +12,41 @@ Required properties have no default. Optional arrays default to empty; omitting 
 | -------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | List     | `schemaVersion: 1`, `id`, `title`, `sections` | `description`, `recallPrompt`, `notePrompt`, `footer`; prompts use built-in defaults               |
 | Section  | `id`, `title`, `items`                        | `description`                                                                                      |
-| Item     | `id`, `title`                                 | `byline`, `description`, `why`, `priority`, `effort: []`, `links: []`, `audio: []`, `parts: []`, `quizzes: []` |
-| Part     | `id`, `title`                                 | `description`, `links: []`, `audio: []`                                                            |
-| Link     | `label`, `url`                                | None                                                                                               |
+| Item     | `id`, `title`                                 | `byline`, `description`, `why`, `priority`, `minutes`, `effort: []`, `links: []`, `audio: []`, `parts: []`, `quizzes: []` |
+| Part     | `id`, `title`                                 | `description`, `minutes`, `links: []`, `audio: []`                                                 |
+| Link     | `label`, `url`                                | `jumps: []` (links into this source: `label`, `url`; one level)                                    |
 | Audio    | `label`, `url`, `description`                 | `src` (direct HTTPS audio URL), `duration`, `warning`, `details`                                   |
 | Quiz     | `id`, `title`, `questions`                    | None                                                                                               |
 | Question | `id`, `prompt`, `choices`, `answer`           | `explanation`                                                                                      |
 | Choice   | `id`, `text`                                  | None                                                                                               |
 
 - A list has at least one section, and each section at least one item. Ordering in arrays controls display order.
-- `description` on an item is the reading assignment: chapters, sections to skim, questions to consider. `why` is the curator's rationale. `byline` can combine author and publication date as appropriate. `effort` is an array of short strings such as `["chapters 1–3", "about 45 minutes"]`. Optional `priority` is `"essential"` or `"optional"`; it shows a small badge next to the byline and appears in exports. Omit it for no badge. It is display-only and does not filter or reorder readings.
-- Links have descriptive labels and absolute HTTP/HTTPS URLs. The first item link is the main source; companions and alternatives follow. A part's links belong to that part. Avoid a vague label such as “here” when the link will also appear in an export.
+- `description` on an item is the reading assignment: chapters, sections to skim, questions to consider. `why` is the curator's rationale. `byline` can combine author and publication date as appropriate. Reading time goes in `minutes` (see [below](#reading-time)); `effort` is an array of other short notes on the workload, such as `["chapters 1–3"]`. Optional `priority` is `"essential"` or `"optional"`; it shows a small badge next to the byline and appears in exports. Omit it for no badge. It is display-only and does not filter or reorder readings.
+- Links have descriptive labels and absolute HTTP/HTTPS URLs. The first item link is the main source; companions and alternatives follow. When a long or awkward source is the main link, put the most readable version first (for example the PDF of a dense web page, labelled "(PDF, easier on phones)"). A part's links belong to that part. Avoid a vague label such as “here” when the link will also appear in an export.
 - Parts are individually checkable portions of a reading. They have progress, while recall, notes and quizzes belong to the parent item.
 - An item can have zero, one or several quizzes. Each quiz has at least one question. Each question has 2–26 choices; `answer` is the correct choice's ID, not its position. Only single-choice questions are supported.
 - Quizzes ask for recall first and provide a skip button. Code exercises can be linked but are not executed or graded.
+
+### Reading time
+
+Give each item a `minutes` estimate (a whole number from 1 to 1000), or give every part one and leave the item's out: the item then counts the sum of its parts. An item's own `minutes` wins; the two are never added. The reader shows "~25 min" next to the byline (hours to the nearest half hour from 90 minutes), and computes the count and time of each section and of the whole list, plus the time of the essential readings when only some are essential. A total appears only when every reading in it has a time, so one missing estimate hides it rather than understating it. Do not write totals into descriptions; they would drift.
+
+### Jumps into a source
+
+When the assignment names particular passages, add them as `jumps` on the link they belong to, so readers land on the passage instead of searching for it:
+
+```json
+{
+  "label": "Statement (agency site)",
+  "url": "https://example.org/statement",
+  "jumps": [
+    { "label": "The line: \"The timeline is not years\"", "url": "https://example.org/statement#:~:text=The%20timeline%20is%20not%20years" },
+    { "label": "Annex, page 11", "url": "https://example.org/statement.pdf#page=11" }
+  ]
+}
+```
+
+For web pages use a [text fragment](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment/Text_fragments): `#:~:text=` followed by a short, distinctive phrase copied from the rendered page, percent-encoded (encode `-` as `%2D`). For PDFs use `#page=N` on the PDF URL. Check every jump in a browser before publishing: the phrase must occur exactly once, near the start of the part you mean, and fragments break silently when a page changes. Browsers without text-fragment support open the page at the top. Label jumps by what the reader finds there, not by the mechanism. Jumps export as indented lines under their link.
 
 ### Audio versions
 
@@ -65,6 +86,10 @@ Use lowercase slugs beginning with a lowercase letter or digit, followed by lowe
 | Choice        | Its question                                                    |
 
 Quiz answers use the key `<quiz-id>/<question-id>` and a choice ID value.
+
+## How readers move through a list
+
+Each reading shows its instruction (`description`) first and the curator's reason (`why`) after it, quieter, so keep `why` to one sentence that does not repeat the instruction. Below it, a drawer holds recall, a note and any quizzes and ends with three exits: the clipboard button (context for a chatbot), Close and "Done, next". Done and skipped readings fold to their title; Show brings one back without changing progress. The bar's count opens a contents sheet with every section and reading and its state; "Next" goes to the first unfinished reading after the one in view. Position and recall skips are remembered on the device only and never sync.
 
 ## Editing a list with saved progress
 

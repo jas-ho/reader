@@ -17,11 +17,13 @@
           "byline": "An invented book for this example",
           "description": "Read chapters 1–3 in your own copy.\n\nChoose one passage to discuss; bring its page number.",
           "why": "Practice separating what the narrator observes from what they infer.",
-          "effort": ["3 chapters", "about 45 minutes"]
+          "minutes": 45,
+          "effort": ["3 chapters"]
         },
         {
           "id": "looking-twice",
           "title": "Looking twice",
+          "minutes": 20,
           "description": "Compare the fictional essay with its fictional response. Replace both placeholder URLs with your own sources.",
           "links": [
             { "label": "Essay (placeholder)", "url": "https://example.org/essay" },
@@ -39,8 +41,8 @@
           "title": "Finish The Imaginary Garden",
           "description": "Complete these chapters in your own copy. Mark each part as you finish it.",
           "parts": [
-            { "id": "garden-chapter-four", "title": "Chapter 4", "description": "Look for a change in the narrator's perspective." },
-            { "id": "garden-chapter-five", "title": "Chapter 5", "description": "Compare the ending with your first impression." }
+            { "id": "garden-chapter-four", "title": "Chapter 4", "minutes": 25, "description": "Look for a change in the narrator's perspective." },
+            { "id": "garden-chapter-five", "title": "Chapter 5", "minutes": 20, "description": "Compare the ending with your first impression." }
           ]
         }
       ]

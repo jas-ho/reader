@@ -6,6 +6,18 @@ export const PRIORITIES = ['essential', 'optional'];
 export const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 export const allItems = list => list.sections.flatMap(section => section.items);
 export const quizKey = (quiz, question) => `${quiz.id}/${question.id}`;
+// Reading time in minutes: the item's own estimate, else the sum of its parts when every part
+// has one; null when unknown. A total is null as soon as one reading in it is unknown.
+export function itemMinutes(item) {
+  if (item.minutes !== undefined) return item.minutes;
+  const parts = item.parts || [];
+  return parts.length && parts.every(part => part.minutes !== undefined) ? parts.reduce((sum, part) => sum + part.minutes, 0) : null;
+}
+export function totalMinutes(items) {
+  let sum = 0;
+  for (const item of items) { const minutes = itemMinutes(item); if (minutes === null) return null; sum += minutes; }
+  return sum;
+}
 // Reading-source links. Audio is exported separately with its coverage notes.
 export function allLinks(item) {
   const links = [...(item.links || []), ...(item.parts || []).flatMap(part => part.links || [])];
@@ -34,6 +46,9 @@ export function validateList(list) {
     if (!Array.isArray(value)) { error(path, 'expected an array'); return []; }
     if (value.length < min) error(path, `expected at least ${min} entries`);
     return value;
+  }
+  function minutes(value, path) {
+    if (value !== undefined && !(Number.isInteger(value) && value >= 1 && value <= 1000)) error(path, 'expected whole minutes from 1 to 1000');
   }
   function url(value, path, protocols = ['http:', 'https:']) {
     try {
@@ -73,17 +88,19 @@ export function validateList(list) {
     id(section.id, `${sp}.id`, sectionIDs); text(section.title, `${sp}.title`, true); text(section.description, `${sp}.description`);
     array(section.items, `${sp}.items`, 1, false).forEach((item, ii) => {
       const ip = `${sp}.items[${ii}]`;
-      if (!object(item, ip, ['id', 'title', 'byline', 'description', 'why', 'priority', 'effort', 'links', 'audio', 'parts', 'quizzes'])) return;
+      if (!object(item, ip, ['id', 'title', 'byline', 'description', 'why', 'priority', 'minutes', 'effort', 'links', 'audio', 'parts', 'quizzes'])) return;
       id(item.id, `${ip}.id`, progressIDs); text(item.title, `${ip}.title`, true);
       for (const field of ['byline', 'description', 'why']) text(item[field], `${ip}.${field}`);
       if (item.priority !== undefined && !PRIORITIES.includes(item.priority)) error(`${ip}.priority`, `expected one of ${PRIORITIES.join(', ')}`);
+      minutes(item.minutes, `${ip}.minutes`);
       array(item.effort, `${ip}.effort`).forEach((v, i) => text(v, `${ip}.effort[${i}]`, true));
       links(item.links, `${ip}.links`);
       audio(item.audio, `${ip}.audio`);
       array(item.parts, `${ip}.parts`).forEach((part, pi) => {
         const pp = `${ip}.parts[${pi}]`;
-        if (!object(part, pp, ['id', 'title', 'description', 'links', 'audio'])) return;
+        if (!object(part, pp, ['id', 'title', 'description', 'minutes', 'links', 'audio'])) return;
         id(part.id, `${pp}.id`, progressIDs); text(part.title, `${pp}.title`, true); text(part.description, `${pp}.description`); links(part.links, `${pp}.links`);
+        minutes(part.minutes, `${pp}.minutes`);
         audio(part.audio, `${pp}.audio`);
       });
       array(item.quizzes, `${ip}.quizzes`).forEach((quiz, qi) => {

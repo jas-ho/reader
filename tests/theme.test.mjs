@@ -14,8 +14,8 @@ const declarations = css => [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap((
 const neutral = /^(transparent|none|inherit|currentColor|Canvas|CanvasText|0|0px)$/;
 const colourLiteral = /#[0-9a-f]{3,8}\b|\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/i;
 const borderWidthOnly = /^[\d.]+px solid$/;
-// The two structural radii: the focus ring and the dash of a dropped item. Every selector in a list must match.
-const radiusExceptions = {'2px': /:focus-visible$/, '1px': /^\.item\[data-state="dropped"\] > \.head \.box::after$/};
+// The one structural radius: the dash of a dropped item. Every selector in a list must match.
+const radiusExceptions = {'1px': /^\.item\[data-state="dropped"\] > \.head \.box::after$/};
 
 function violation({selector, prop, value}) {
   const token = /var\(--/.test(value);

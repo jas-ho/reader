@@ -13,9 +13,15 @@
           "title": "A repeatable recipe",
           "description": "Read the guide, watch the companion and try the exercise. This reader tracks completion; it does not execute or grade code.",
           "why": "Distinguish a reusable instruction from the result of running it.",
-          "effort": ["20 minutes reading", "10 minutes practice"],
           "links": [
-            { "label": "Guide (placeholder)", "url": "https://example.org/guide" },
+            {
+              "label": "Guide (placeholder)",
+              "url": "https://example.org/guide",
+              "jumps": [
+                { "label": "The worked example (placeholder)", "url": "https://example.org/guide#:~:text=worked%20example" },
+                { "label": "Printable checklist, page 4 (placeholder)", "url": "https://example.org/guide.pdf#page=4" }
+              ]
+            },
             { "label": "Video companion (placeholder)", "url": "https://example.org/video" }
           ],
           "audio": [
@@ -26,8 +32,8 @@
             }
           ],
           "parts": [
-            { "id": "read-guide", "title": "Read the guide", "links": [{ "label": "Guide (placeholder)", "url": "https://example.org/guide" }] },
-            { "id": "try-recipe", "title": "Try the recipe exercise", "description": "Write the instructions, then follow them yourself.", "links": [{ "label": "Exercise (placeholder)", "url": "https://example.org/exercise" }] }
+            { "id": "read-guide", "title": "Read the guide", "minutes": 20, "links": [{ "label": "Guide (placeholder)", "url": "https://example.org/guide" }] },
+            { "id": "try-recipe", "title": "Try the recipe exercise", "minutes": 10, "description": "Write the instructions, then follow them yourself.", "links": [{ "label": "Exercise (placeholder)", "url": "https://example.org/exercise" }] }
           ],
           "quizzes": [
             {

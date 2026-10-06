@@ -14,10 +14,23 @@ html{scroll-padding-bottom:calc(var(--bar-h,64px) + 1rem)}
 
 a{color:var(--accent);text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:.16em}
 a:hover{text-decoration-color:var(--accent)}
-a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,input:focus-visible,.head h3:focus-visible{
-  outline:2px solid var(--accent);outline-offset:3px;border-radius:2px
+a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,input:focus-visible,h1:focus-visible,h2:focus-visible,.head h3:focus-visible{
+  outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--radius)
 }
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
+/* Controls. Quiet: text only, muted. Primary: the one filled button in a row. Every target is at least 44px. */
+button{font:inherit;cursor:pointer}
+.drop,.show,.close1,.copy1,.qreset,.audio-start,.audio-details,#exportBtn,.contents-head button,.handoff .tools button{
+  background:transparent;border:0;color:var(--muted);font-size:.88rem;
+  min-height:44px;min-width:44px;padding:.4rem .5rem;display:inline-flex;align-items:center;justify-content:center;gap:.4rem
+}
+.drop:hover,.show:hover,.close1:hover,.copy1:hover,.qreset:hover,.audio-start:hover,.audio-details:hover,#exportBtn:hover,.contents-head button:hover,.handoff .tools button:hover{color:var(--accent)}
+.next1,.handoff .tools .primary{
+  background:var(--ink);color:var(--ground);border:1px solid var(--ink);border-radius:var(--radius);
+  font-size:.88rem;font-weight:600;min-height:44px;padding:.4rem .9rem
+}
+.next1:hover,.handoff .tools .primary:hover{background:var(--accent);border-color:var(--accent);color:var(--ground)}
 
 /* ---------- masthead ---------- */
 header.mast{border-bottom:1px solid var(--rule);padding-bottom:1.5rem;margin-bottom:1.5rem}
@@ -27,21 +40,20 @@ h1{
   margin:0 0 .5rem;text-wrap:balance;
 }
 .dek{color:var(--muted);max-width:34rem;margin:0}
+.counts{color:var(--muted);font-size:.84rem;margin:.5rem 0 0}
 
-/* ---------- buckets ---------- */
+/* ---------- sections ---------- */
 .bucket{margin:0 0 2.5rem}
 .bucket > h2{
   font-family:var(--font-heading);font-weight:500;font-size:1.35rem;
-  margin:0 0 .2rem;letter-spacing:-.01em;
+  margin:0;letter-spacing:-.01em;scroll-margin-top:1rem;
 }
+.bucket > .counts{margin:0 0 .3rem}
 .bucket > .why-bucket{color:var(--muted);font-size:.92rem;margin:0 0 1rem}
 
-/* ---------- item ---------- */
-.item{
-  scroll-margin-top:1rem;
-  background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);
-  padding:.95rem 1rem 1rem;margin:0 0 .8rem;box-shadow:var(--shadow);
-}
+/* ---------- reading ---------- */
+/* No card frame: readings are separated by a hairline and whitespace. */
+.item{scroll-margin-top:1rem;border-top:1px solid var(--rule);padding:1.1rem 0 .4rem}
 .head{display:flex;gap:.75rem;align-items:flex-start;min-height:44px}
 .box{
   flex:0 0 auto;width:22px;height:22px;margin-top:.28rem;border:1.5px solid var(--rule);
@@ -50,92 +62,104 @@ h1{
   -webkit-appearance:none;appearance:none;font-family:inherit;
 }
 .box::before{content:"";position:absolute;inset:-11px}
-.item[data-state="done"] > .head .box{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
-.item[data-state="dropped"] > .head .box{border-color:var(--muted);color:transparent;position:relative}
+.item[data-state="done"] > .head .box,.subs > li[data-state="done"] .box{background:var(--accent-soft);color:var(--accent)}
+.item[data-state="dropped"] > .head .box{color:transparent}
 .item[data-state="dropped"] > .head .box::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:10px;height:2px;background:var(--muted);border-radius:1px}
 .heading{flex:1;min-width:0}
 .head h3{
   font-family:var(--font-heading);font-weight:500;font-size:1.2rem;
   line-height:1.25;margin:0;letter-spacing:-.005em;flex:1;text-wrap:balance;
 }
-.metadata{display:flex;flex-wrap:wrap;gap:.15rem .65rem;margin-top:.25rem;color:var(--muted);font-size:.82rem;line-height:1.45}
-.priority{border:1px solid var(--rule);border-radius:var(--radius);padding:0 .35rem;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
-.priority-essential{border-color:var(--signal);background:var(--signal-soft);color:var(--signal);font-weight:600}
-.item[data-state="done"] .head h3,
-.item[data-state="dropped"] .head h3{color:var(--done);text-decoration:line-through}
-.item[data-state="done"] .body,
-.item[data-state="dropped"] .body{display:none}
-.item[data-state][data-show] .body{display:block} /* "Show" on a done or skipped reading; progress unchanged */
-.item[data-state] .item-footer{border-top:none;margin-top:.3rem}
+/* "Essential · Byline · ~5 min": one line of plain text; a separator may end a line, never start one. */
+.metadata{margin-top:.25rem;color:var(--muted);font-size:.82rem;line-height:1.45}
+.metadata > span + span::before{content:"\00a0· ";content:"\00a0· " / ""}
+.priority-essential{font-weight:600;color:var(--signal)}
+.minutes,.toc .time,.counts{font-variant-numeric:tabular-nums}
+.metadata .minutes{white-space:nowrap}
+/* Done and skipped readings fold to their title; Show brings the reading back. */
+.item[data-state] .head h3{color:var(--done)}
+.item[data-state]:not([data-show]) .metadata,
+.item[data-state]:not([data-show]) .body{display:none}
 .item[data-state] .drop{display:none}
 
 .body{margin-top:.7rem}
-.what{margin:0 0 .7rem;font-size:.95rem}
-.why{margin:0 0 .6rem;font-size:.92rem;line-height:1.5;color:var(--muted)}
+.what{margin:0 0 .6rem;font-size:.95rem}
+.why{margin:0 0 .6rem;font-size:.84rem;line-height:1.5;color:var(--muted)}
 
 /* sub-items */
 .subs{list-style:none;margin:.7rem 0 0;padding:0;display:flex;flex-direction:column;gap:.1rem}
 .subs > li{display:flex;gap:.7rem;align-items:flex-start;padding:.45rem 0;min-height:44px}
 .subs > li + li{border-top:1px solid var(--rule)}
-.subs .box{width:19px;height:19px;margin-top:.2rem;font-size:12px}
-.subs .txt{flex:1;font-size:.92rem;line-height:1.45}
-.subs > li[data-state="done"] .txt{color:var(--done);text-decoration:line-through}
-.subs > li[data-state="done"] .box{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.subs .box{margin-top:.1rem;font-size:13px}
+.subs .txt{flex:1;min-width:0;font-size:.92rem;line-height:1.45}
+.subs .txt p{margin:.3rem 0}
+.subs .minutes{color:var(--muted);font-size:.82rem}
+.subs > li[data-state="done"] .txt{color:var(--done)}
 
-/* close-out drawer: recall, note, quiz, copy */
-.item-footer{position:relative;border-top:1px solid var(--rule);margin-top:.8rem;padding-top:.2rem}
+/* close-out drawer: recall, note, quiz, then the exits */
+.item-footer{position:relative;margin-top:.4rem}
 details.closeout{margin:0}
 details.closeout > summary{
-  font-size:.85rem;color:var(--accent);cursor:pointer;list-style:none;min-height:44px;
-  display:flex;align-items:center;gap:.45rem;padding:.4rem 5.5rem .4rem 0;
+  font-size:.88rem;color:var(--ink);cursor:pointer;list-style:none;min-height:44px;scroll-margin-top:1rem;
+  display:flex;align-items:flex-start;gap:.45rem;padding:.6rem 5.5rem .4rem 0;line-height:1.4
 }
+details.closeout > summary:hover{color:var(--accent)}
 details.closeout > summary::-webkit-details-marker{display:none}
 .chevron{display:inline-block;font-size:1.25rem;line-height:1;transition:transform .15s;flex:0 0 auto}
 details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"] .chevron{transform:rotate(90deg)}
 .summary-text{min-width:0}
-details.closeout > summary .sumtxt{color:var(--muted);font-size:.8rem;margin-left:.3rem}
-.item-footer > .drop,.item-footer > .show{position:absolute;right:0;top:.2rem;max-width:5.3rem}
+.item-footer > .drop,.item-footer > .show{position:absolute;right:0;top:0}
 .show{display:none}
-.item[data-state] .item-footer > .show{display:block}
-details.closeout > summary{scroll-margin-top:1rem}
-.exits{margin-top:.4rem}
+.item[data-state] .item-footer > .show{display:inline-flex}
 .closeout .field{margin-top:.6rem}
-.closeout label{
-  display:block;font-family:var(--font-ui);
-  font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+.closeout label{display:block;font-size:.82rem;font-weight:600;color:var(--muted)}
+.closeout textarea,.pad textarea{
+  width:100%;margin-top:.3rem;min-height:3.4rem;resize:vertical;field-sizing:content;
+  background:var(--surface);color:var(--ink);border:1px solid var(--rule);
+  border-radius:var(--radius);padding:.55rem .6rem;font:inherit;font-size:.93rem;line-height:1.5;
 }
-.closeout textarea{
-  width:100%;margin-top:.3rem;min-height:4.6rem;resize:vertical;
-  background:var(--ground);color:var(--ink);border:1px solid var(--rule);
-  border-radius:var(--radius);padding:.6rem;font:inherit;font-size:.93rem;line-height:1.5;
-}
-.closeout .quiz{box-shadow:none;margin:.7rem 0 0;background:var(--ground)}
-.gate{display:flex;flex-wrap:wrap;gap:0 .4rem;align-items:baseline;padding:.2rem 1rem .8rem;color:var(--muted);font-size:.88rem}
-.tools{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:.5rem;margin-top:.7rem}
-.tools button,.barrow > button,.handoff button{
-  font-family:var(--font-ui);
-  font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;
-  background:transparent;color:var(--accent);border:1px solid var(--rule);
-  border-radius:var(--radius);padding:.5rem .7rem;cursor:pointer;min-height:44px;
-  display:inline-flex;align-items:center;gap:.4rem;
-}
-.tools button:hover,.barrow > button:hover{border-color:var(--accent)}
-.drop,.show{
-  background:transparent;border:none;color:var(--muted);cursor:pointer;
-  font-family:var(--font-ui);
-  font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
-  padding:.5rem .1rem;min-height:44px;
-}
-.drop:hover{color:var(--signal)}
+.pad textarea{min-height:5rem}
+.exits{display:flex;align-items:center;gap:.3rem;margin-top:.8rem}
+.exits .copy1{margin-right:auto;margin-left:-.5rem}
+.copy1 svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
 
-/* freeform + export */
-.pad{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:1rem;margin:0 0 2rem;box-shadow:var(--shadow)}
-.pad h2{font-family:var(--font-heading);font-weight:500;font-size:1.2rem;margin:0 0 .5rem}
-.pad p{color:var(--muted);font-size:.9rem;margin:0 0 .6rem}
-.pad textarea{
-  width:100%;min-height:7rem;resize:vertical;background:var(--ground);color:var(--ink);
-  border:1px solid var(--rule);border-radius:var(--radius);padding:.6rem;font:inherit;font-size:.93rem;line-height:1.5;
+/* ---------- quizzes ---------- */
+.quiz{margin:.8rem 0 0}
+.quiz > summary{
+  font-weight:600;font-size:.95rem;
+  padding:.6rem 0;cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:.6rem;min-height:44px
 }
+.quiz > summary::-webkit-details-marker{display:none}
+.quiz > summary::after{content:"›";content:"›" / "";margin-left:auto;color:var(--muted);font-size:1.3rem;transition:transform .15s}
+.quiz[open] > summary::after{transform:rotate(90deg)}
+.quiz > summary .qscore{color:var(--muted);font-weight:normal;font-size:.84rem}
+.gate{color:var(--muted);font-size:.88rem;padding:0 0 .6rem}
+.gate .qreset{display:inline;min-height:0;min-width:0;padding:0;font-size:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:.16em}
+.q{padding:.6rem 0 .4rem}
+.q .qtext{font-size:.95rem;line-height:1.45;margin:0 0 .3rem;font-weight:500}
+/* Choices are rows; after answering, the chosen and the right one are tinted and marked. */
+.opt{
+  display:block;width:100%;text-align:left;font-size:.9rem;line-height:1.4;position:relative;
+  background:transparent;color:var(--ink);border:0;border-bottom:1px solid var(--rule);border-radius:0;
+  padding:.65rem 2rem .65rem .4rem;min-height:44px;
+  -webkit-appearance:none;appearance:none;transition:background .12s
+}
+.opt:hover:not([aria-disabled="true"]){background:var(--accent-soft)}
+.opt[aria-disabled="true"]{cursor:default}
+.q.answered .opt.correct{background:var(--correct-soft)}
+.q.answered .opt.wrong{background:var(--wrong-soft)}
+/* Marks carry the result without colour; the status text below announces it, so they stay silent. */
+.q.answered .opt.correct::after,.q.answered .opt.wrong::after{position:absolute;right:.6rem;top:.65rem;font-weight:700}
+.q.answered .opt.correct::after{content:"\2713";content:"\2713" / "";color:var(--correct)}
+.q.answered .opt.wrong::after{content:"\2717";content:"\2717" / "";color:var(--wrong)}
+.rat{font-size:.86rem;line-height:1.5;color:var(--muted);margin:.5rem 0 .2rem;display:none}
+.q.answered .rat{display:block}
+
+/* freeform */
+.pad{border-top:1px solid var(--rule);padding-top:1.1rem;margin:0 0 2rem}
+.pad h2{font-family:var(--font-heading);font-weight:500;font-size:1.2rem;margin:0 0 .3rem}
+.pad p{color:var(--muted);font-size:.88rem;margin:0 0 .4rem}
+
 /* ---------- bottom bar ---------- */
 .bar{
   position:fixed;left:0;right:0;bottom:0;z-index:50;
@@ -144,56 +168,45 @@ details.closeout > summary{scroll-margin-top:1rem}
   box-shadow:var(--bar-shadow);
 }
 .barrow{
-  max-width:44rem;margin:0 auto;display:flex;align-items:center;gap:.5rem .7rem;
-  padding:.5rem 1.15rem;
+  max-width:44rem;margin:0 auto;display:flex;align-items:center;gap:.5rem;
+  padding:.4rem 1.15rem;
 }
-@media(min-width:700px){ .barrow{padding:.5rem 2rem} }
-.bar .count{font-family:var(--font-heading);font-size:1.25rem;line-height:1;white-space:nowrap}
-.bar .hint{font-size:.85rem;flex:0 0 auto;display:flex;margin-right:auto}
-.bar .hint .jump{white-space:nowrap;background:none;border:none;padding:0 .3rem;margin:0;min-height:44px;min-width:44px;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:.16em}
-.bar .hint .jump:hover{text-decoration-color:var(--accent)}
+@media(min-width:700px){ .barrow{padding:.4rem 2rem} }
+.bar .count{background:transparent;border:0;color:var(--ink);font-weight:600;font-size:1rem;white-space:nowrap;min-height:44px;padding:0 .4rem 0 0;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:.25em}
+.bar .count:hover{text-decoration-color:var(--ink)}
+.bar .hint{font-size:.88rem;flex:0 0 auto;display:flex;margin-right:auto}
+.bar .hint .jump{white-space:nowrap;background:transparent;border:1px solid var(--ink);border-radius:var(--radius);color:var(--ink);min-height:44px;min-width:44px;padding:0 .8rem}
+.bar .hint .jump:hover{border-color:var(--accent);color:var(--accent)}
 #syncMount{white-space:nowrap}
+#exportBtn{font-size:.85rem;padding:.4rem .2rem}
 .bar .tx2{display:none}
 @media(min-width:700px){ .bar .tx2{display:inline} }
-/* The handoff is a dialog, separate from the fixed bar and its keyboard rules. */
-.handoff{width:min(40rem,calc(100% - 1.5rem));max-height:85vh;max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow)}
-.handoff::backdrop{background:var(--backdrop)}
+@media(max-width:699px){ body:has(.wrap textarea:focus) .bar{display:none} }
+
+/* ---------- dialogs: handoff and contents ---------- */
+.handoff,.contents{width:min(40rem,calc(100% - 1.5rem));max-height:85vh;max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow)}
+.handoff::backdrop,.contents::backdrop{background:var(--backdrop)}
+.handoff{padding:1rem}
 .handoff h2{font-family:var(--font-heading);font-size:1.35rem;margin:0}
 .handoff p{font-size:.9rem;margin:.7rem 0}
-.handoff textarea{display:block;width:100%;height:12rem;resize:vertical;border:1px solid var(--rule);border-radius:var(--radius);background:var(--ground);color:var(--ink);padding:.6rem;font:.82rem/1.5 var(--font-ui)}
-.handoff .tools{justify-content:flex-start}
+.handoff textarea{display:block;width:100%;height:12rem;resize:vertical;border:1px solid var(--rule);border-radius:var(--radius);background:var(--ground);color:var(--ink);padding:.6rem;font-size:.82rem;line-height:1.5;font-family:inherit}
 .handoff label{display:block;margin:.5rem 0;font-size:.83rem}
-@media(max-width:699px){ body:has(.wrap textarea:focus) .bar{display:none} }
-/* ---------- quizzes ---------- */
-.quiz{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);margin:0 0 .8rem;box-shadow:var(--shadow);overflow:hidden}
-.quiz > summary{
-  font-family:var(--font-heading);font-weight:500;font-size:1.2rem;
-  padding:.95rem 1rem;cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:.6rem;min-height:44px
-}
-.quiz > summary::-webkit-details-marker{display:none}
-.quiz > summary::after{content:"›";margin-left:auto;color:var(--muted);font-size:1.3rem;transition:transform .15s}
-.quiz[open] > summary::after{transform:rotate(90deg)}
-.quiz > summary .qscore{font-family:var(--font-ui);font-size:.74rem;letter-spacing:.04em;color:var(--muted);font-weight:normal}
-.qbody{padding:0 1rem 1rem}
-.q{border-top:1px solid var(--rule);padding:.9rem 0 .2rem}
-.q .qtext{font-size:.95rem;line-height:1.45;margin:0 0 .6rem;font-weight:500}
-.opt{
-  display:block;width:100%;text-align:left;font:inherit;font-size:.9rem;line-height:1.4;position:relative;
-  background:var(--ground);color:var(--ink);border:1px solid var(--rule);border-radius:var(--radius);
-  padding:.6rem 2rem .6rem .7rem;margin:0 0 .4rem;cursor:pointer;min-height:44px;
-  -webkit-appearance:none;appearance:none;transition:border-color .12s,background .12s
-}
-.opt:hover:not([aria-disabled="true"]){border-color:var(--accent)}
-.q.answered .opt.correct{border-color:var(--correct);background:var(--correct-soft);color:var(--ink)}
-.q.answered .opt.wrong{border-color:var(--wrong);background:var(--wrong-soft)}
-/* Marks carry the result without colour; the status text below announces it, so they stay silent. */
-.q.answered .opt.correct::after,.q.answered .opt.wrong::after{position:absolute;right:.7rem;top:.6rem;font-weight:700}
-.q.answered .opt.correct::after{content:"\2713";content:"\2713" / "";color:var(--correct)}
-.q.answered .opt.wrong::after{content:"\2717";content:"\2717" / "";color:var(--wrong)}
-.rat{font-size:.86rem;line-height:1.5;color:var(--muted);border-left:2px solid var(--correct);padding:.15rem 0 .15rem .7rem;margin:.2rem 0 .3rem;display:none}
-.q.answered .rat{display:block}
-.q.answered:has(.opt.wrong) .rat{border-left-color:var(--wrong)}
-.qreset{font-family:var(--font-ui);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--accent);border:none;cursor:pointer;padding:.4rem 0;margin-top:.3rem;min-height:44px}
+.handoff .tools{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;margin-top:.7rem}
+.contents{padding:0 1rem 1rem}
+.contents-head{position:sticky;top:0;z-index:1;background:var(--surface);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rule)}
+.contents-head h2{font-family:var(--font-heading);font-size:1.2rem;margin:0}
+.contents-count{color:var(--muted);font-size:.85rem;margin:0 auto 0 .7rem}
+.contents h3{margin:1rem 0 0;font-size:.9rem}
+.contents ul{list-style:none;margin:0;padding:0}
+.toc{display:flex;gap:.5rem;align-items:baseline;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--rule);color:var(--ink);font-size:.92rem;line-height:1.35;padding:.6rem 0;min-height:44px}
+.contents h3 .toc{font-weight:600;border-bottom-color:var(--ink)}
+.toc .mark{flex:0 0 1em;color:var(--muted)}
+.toc .name{flex:1;min-width:0}
+.toc .time{color:var(--muted);font-size:.8rem;font-weight:normal;white-space:nowrap}
+.toc:hover .name{color:var(--accent)}
+.toc[aria-current="true"] .name{font-weight:600;text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:.2em}
+.contents li[data-state] .name{color:var(--done)}
+.contents li[data-state] .time{display:none}
 
 footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);font-size:.84rem;line-height:1.6}
 
@@ -204,27 +217,23 @@ footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);fo
 .jumps{list-style:none;margin:.15rem 0 .35rem;padding:0 0 0 1rem;font-size:.86rem;line-height:1.45}
 .jumps li{margin:.15rem 0;padding-left:1.25em;text-indent:-1.25em}
 .jumps li::before{content:"\21B3\00a0";content:"\21B3\00a0" / "";color:var(--muted)}
+
+/* audio */
 .audio-options{margin:.5rem 0}
 .audio-option + .audio-option{margin-top:.9rem}
-.audio-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem .7rem}
+.audio-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem .7rem;margin-left:-.5rem}
 .audio-option a{overflow-wrap:anywhere}
 .audio-option p{margin:.3rem 0;font-size:.85rem}
-.audio-description{color:var(--muted)}
-.audio-warning{color:var(--signal);border-left:2px solid var(--signal);padding-left:.5rem}
+.audio-description,.audio-warning{color:var(--muted)}
+.audio-start{color:var(--accent)}
 .audio-option audio{display:block;flex:1 1 12rem;width:100%;min-width:0;max-width:26rem}
-.audio-start{display:inline-flex;align-items:center;gap:.4rem;min-height:44px;font:inherit;font-size:.9rem;color:var(--accent);background:transparent;border:1px solid var(--rule);border-radius:var(--radius);padding:.3rem .65rem;cursor:pointer}
-.audio-start:hover{border-color:var(--accent)}
-.audio-details{display:inline-flex;align-items:center;gap:.4rem;min-height:44px;font:inherit;font-size:.85rem;color:var(--muted);background:transparent;border:0;padding:.3rem .2rem;cursor:pointer}
 .audio-source{margin-top:.4rem;font-size:.85rem}
 .audio-status:empty{margin:0}
-.subs .txt{min-width:0}
-.subs .txt p{margin:.3rem 0}
-.opt[aria-disabled="true"]{cursor:default}
 #startup-error{white-space:pre-line;overflow-wrap:anywhere}
 
 /* The box's tick is always in the DOM and hidden by colour; forced colours would show it on every box. */
 @media(forced-colors:active){
   .box{color:Canvas}
-  .item[data-state="done"] .box,.subs > li[data-state="done"] .box{color:CanvasText}
+  .item[data-state="done"] > .head .box,.subs > li[data-state="done"] .box{color:CanvasText}
 }
 @media(prefers-reduced-motion:reduce){ .quiz > summary::after,.chevron{transition:none} }

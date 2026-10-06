@@ -113,7 +113,8 @@ To upgrade, copy your instance, check out a newer reader commit and update the c
 - Keep item, part, quiz, question and choice IDs when reordering. Use new IDs for unrelated replacements. See [editing rules](docs/model.md#editing-a-list-with-saved-progress).
 - Local-only concurrent tabs use last-write-wins snapshots, not automatic merging. Avoid editing notes for the same list in multiple tabs at once.
 - If saved data is corrupt or has an unsupported shape, startup stops and leaves it untouched. The error names the entry to recover in your browser's developer tools under Local Storage. Ordinary list/config errors also leave notes untouched.
-- **Use in your chatbot** provides source links, reading instructions and your notes as selectable text or a Markdown download. Paste the text into a chatbot or attach the file. The prompt asks it to wait for your question and acknowledge inaccessible sources.
+- **Use in your chatbot** (the clipboard button at the end of each reading) prepares source links, reading instructions and your notes to copy or download as Markdown. Paste the text into a chatbot or attach the file. The prompt asks it to wait for your question and acknowledge inaccessible sources.
+- Reading position and skipped recall gates are kept per device under `<storage key>:view`. They never sync and are not part of exports.
 - **Export all notes** covers the current list. Removed items remain in browser storage but are omitted from this export. The Markdown file cannot be imported to restore saved state.
 
 ### Optional sync

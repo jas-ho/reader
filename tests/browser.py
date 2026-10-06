@@ -524,10 +524,10 @@ def accessibility_regressions(browser):
     # (not up to the summary, which on a phone is screens away).
     first.get_by_role("button", name="Reset this quiz", exact=True).click()
     expect(first.locator(".qbody")).to_be_hidden()
-    expect(first.get_by_role("button", name="show the quiz without recall", exact=True)).to_be_focused()
+    expect(first.get_by_role("button", name="show the quiz without it.", exact=True)).to_be_focused()
     second.locator("summary").click()
     expect(second.locator(".qbody")).to_be_hidden()
-    first.get_by_role("button", name="show the quiz without recall", exact=True).click()
+    first.get_by_role("button", name="show the quiz without it.", exact=True).click()
     expect(first.locator(".opt").first).to_be_focused()
     expect(first.locator(".qbody")).to_be_visible()
     expect(second.locator(".qbody")).to_be_visible()
@@ -740,10 +740,10 @@ def audio_versions(browser, screenshots):
         page.locator("#handoffClose").click()
         card = page.locator("article.item").first
         summary = card.locator(".closeout > summary")
-        expect(summary).to_contain_text("Quiz" if language == "de" else "quiz")
+        expect(summary).to_contain_text("Quiz")
         expect(
             page.locator("article.item").nth(1).locator(".closeout > summary")
-        ).not_to_contain_text("Quiz" if language == "de" else "quiz")
+        ).not_to_contain_text("Quiz")
         summary_box = summary.bounding_box()
         skip_box = card.locator(".drop").bounding_box()
         assert card.locator(".drop").evaluate(
@@ -763,21 +763,134 @@ def audio_versions(browser, screenshots):
             )
         card.locator(".head .box").click()
         assert broken.locator("audio").evaluate("audio => audio.paused")
+        # A done reading folds to its title: no metadata, no body, no Skip.
         expect(card.locator(".drop")).to_be_hidden()
-        assert (
-            card.locator("h3").evaluate(
-                "node => getComputedStyle(node).textDecorationLine"
-            )
-            == "line-through"
-        )
+        expect(card.locator(".metadata")).to_be_hidden()
+        expect(card.locator(".body")).to_be_hidden()
         card.locator(".head .box").click()
         expect(card.locator(".drop")).to_be_visible()
-        assert (
-            card.locator("h3").evaluate(
-                "node => getComputedStyle(node).textDecorationLine"
-            )
-            == "none"
-        )
+        expect(card.locator(".metadata")).to_be_visible()
+        site.healthy()
+        context.close()
+
+
+def contents_and_drawer(browser):
+    """Computed times, the contents sheet (dismiss vs navigate, sync while open, Next after a
+    section jump), the drawer summary and end row, Copy, at 320px in both languages."""
+    for language in ("en", "de"):
+        data = nav_list()
+        for i, item in enumerate(data["sections"][0]["items"]):
+            item["minutes"] = 10 * (i + 1)
+        data["sections"][0]["items"][0]["effort"] = ["Read chapters one to three and the appendix before continuing with the exercises"]
+        context = browser.new_context(viewport={"width": 320, "height": 700}, has_touch=True)
+        context.grant_permissions(["clipboard-read", "clipboard-write"])
+        page = context.new_page()
+        site = Site(page, data)
+        site.config["language"] = language
+        site.open()
+        de = language == "de"
+        card = lambda i: page.locator(f'.item[data-id="r{i}"]')
+        count = page.locator("#count")
+        # A sync widget sits in the bar too; the row must still fit.
+        page.evaluate("document.querySelector('#syncMount').textContent = 'sync ✓'")
+
+        # Counts and times are computed; a section with an untimed reading shows no time.
+        expect(page.locator("#counts")).to_have_text("5 Texte" if de else "5 readings")
+        expect(page.locator("#section-one .counts")).to_have_text("3 Texte · ~60 Min." if de else "3 readings · ~60 min")
+        expect(page.locator("#section-two .counts")).to_have_text("2 Texte" if de else "2 readings")
+        expect(card(1).locator(".metadata .minutes")).to_have_text("~10 Min." if de else "~10 min")
+        check_layout(page, 320)
+
+        # The drawer summary names its parts and marks what is filled, without repeating itself.
+        summary = card(1).locator(".closeout > summary")
+        expect(summary).to_have_text("›Erinnerung · Notiz · Quiz" if de else "›Recall · Note · Quiz")
+        summary.click()
+        card(1).locator("textarea.recall").fill("x")
+        expect(summary).to_have_text("›Erinnerung ✓ · Notiz · Quiz" if de else "›Recall ✓ · Note · Quiz")
+        # Questions group their choices; choices carry no letters.
+        card(1).locator(".quiz > summary").click()
+        group = card(1).get_by_role("group", name="Question 0?")
+        expect(group.locator(".opt").first).to_have_text("Answer A")
+        # One end row: clipboard, Close, Done next; all reachable and fitting at 320px.
+        exits = card(1).locator(".exits")
+        copy = exits.get_by_role("button", name="Im Chatbot verwenden" if de else "Use in your chatbot")
+        rows = {round(b.bounding_box()["y"]) for b in exits.locator("button").all()}
+        assert len(rows) == 1, f"end row wraps in {language}: {rows}"
+        for b in exits.locator("button").all():
+            box = b.bounding_box(); assert box["height"] >= 44 and box["width"] >= 44, box
+        check_layout(page, 320)
+        # Copy puts the prepared context on the clipboard and says so.
+        copy.click()
+        page.locator("#copyBtn").click()
+        expect(page.locator("#copyMsg")).to_have_text("Kopiert. Füge es in deinen Chatbot ein." if de else "Copied. Paste it into your chatbot.")
+        assert page.evaluate("navigator.clipboard.readText()") == page.locator("#handoffText").input_value()
+        page.keyboard.press("Escape")
+        expect(copy).to_be_focused()
+        # When the clipboard refuses, the text is selected for the reader to copy by hand.
+        copy.click()
+        page.evaluate("() => { navigator.clipboard.writeText = () => Promise.reject(new Error('denied')); }")
+        page.locator("#copyBtn").click()
+        expect(page.locator("#copyMsg")).to_contain_text("Automatisches Kopieren" if de else "Could not copy")
+        expect(page.locator("#handoffText")).to_be_focused()
+        page.keyboard.press("Escape")
+        expect(copy).to_be_focused()
+        # The gate is one sentence.
+        card(2).locator(".closeout > summary").click()
+        card(2).locator(".quiz > summary").click()
+        expect(card(2).locator(".gate")).to_have_text(
+            "Schreibe zuerst auf, woran du dich erinnerst, oder zeig das Quiz gleich." if de
+            else "Write your recall first, or show the quiz without it.")
+        card(2).locator(".close1").click()
+
+        # The contents sheet opens from the count and marks where the reader is.
+        card(2).locator(".head h3").focus()
+        expect(count).to_have_attribute("aria-label", "5 offen, Inhalt" if de else "5 left, contents")
+        count.click()
+        sheet = page.locator("#contents")
+        expect(sheet).to_be_visible()
+        expect(page.locator("#contentsCount")).to_have_text("5 offen" if de else "5 left")
+        current = sheet.locator('.toc[aria-current="true"]')
+        expect(current).to_contain_text("Reading 2"); expect(current).to_be_focused()
+        check_layout(page, 320)
+        # Dismissing returns to the count; nothing moved.
+        page.keyboard.press("Escape")
+        expect(count).to_be_focused()
+        # A remote change while the sheet is open repaints its states in place.
+        count.click()
+        page.evaluate("p => { const s = p.get(); s.items = {...s.items, r4: 'done'}; p.set(s); }", page.evaluate_handle("window.readerPage"))
+        row4 = sheet.locator("li").filter(has_text="Reading 4")
+        expect(row4).to_have_attribute("data-state", "done")
+        expect(row4.locator(".sr")).to_have_text(", gelesen" if de else ", done")
+        expect(row4.locator(".time")).to_be_hidden()
+        expect(page.locator("#contentsCount")).to_have_text("4 offen" if de else "4 left")
+        # Navigating focuses the target, not the count. A section jump makes Next start there.
+        sheet.locator("h3 .toc").filter(has_text="Two").click()
+        expect(sheet).to_be_hidden()
+        expect(page.locator("#section-two h2")).to_be_focused()
+        page.wait_for_timeout(450)
+        page.locator("#hint .jump").click()
+        expect(card(5).locator(".head h3")).to_be_focused()  # r4 is done
+        count.click()
+        sheet.locator(".toc").filter(has_text="Reading 1").click()
+        expect(card(1).locator(".head h3")).to_be_focused()
+        count.click()
+        sheet.locator(".toc").first.click()  # top of page
+        expect(page.locator("h1")).to_be_focused()
+        assert page.evaluate("scrollY") < 60
+        page.wait_for_timeout(450)
+        page.locator("#hint .jump").click()
+        expect(card(1).locator(".head h3")).to_be_focused()
+        # The last section is short: the page cannot scroll it to the top, Next still starts there.
+        page.evaluate("p => { const s = p.get(); s.items = {...s.items, r1: 'done', r2: 'done', r3: 'done'}; p.set(s); }", page.evaluate_handle("window.readerPage"))
+        count.click(); sheet.locator("h3 .toc").filter(has_text="Two").click()
+        page.wait_for_timeout(450)
+        page.locator("#hint .jump").click()
+        expect(card(5).locator(".head h3")).to_be_focused()
+        # All done: the count says so, inside the sheet too.
+        page.evaluate("p => { const s = p.get(); s.items = {...s.items, r5: 'done'}; p.set(s); }", page.evaluate_handle("window.readerPage"))
+        expect(count).to_have_text("Alles erledigt" if de else "All done")
+        count.click(); expect(page.locator("#contentsCount")).to_have_text("Alles erledigt" if de else "All done")
+        page.keyboard.press("Escape")
         site.healthy()
         context.close()
 
@@ -826,7 +939,7 @@ def quiz_result_colours(browser):
             questions = card.locator(".q")
             questions.nth(0).locator(".opt").filter(has_text="An infinite set").click()  # wrong
             questions.nth(1).locator(".opt").filter(has_text="The empty set").click()  # right
-            page.wait_for_timeout(300)  # let the border transition settle before reading colours
+            page.wait_for_timeout(300)  # let the background transition settle before reading colours
             style = lambda loc, prop, pseudo="null": loc.evaluate(
                 f"(el, p) => getComputedStyle(el, {pseudo}).getPropertyValue(p)", prop
             )
@@ -839,13 +952,19 @@ def quiz_result_colours(browser):
             )
             want_correct = expected[scheme] if theme else resolve("--accent")
             want_wrong = resolve("--signal")
-            assert style(correct, "border-top-color") == want_correct, (theme, scheme)
-            assert style(wrong, "border-top-color") == want_wrong, (theme, scheme)
+            # Results show as a tint on the row plus a coloured mark.
+            assert style(correct, "color", "'::after'") == want_correct, (theme, scheme)
+            assert style(wrong, "color", "'::after'") == want_wrong, (theme, scheme)
+            bg = lambda name: page.evaluate(
+                "n => { const d = document.createElement('i'); d.style.backgroundColor = `var(${n})`;"
+                " document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }",
+                name,
+            )
+            assert style(correct, "background-color") == bg("--correct-soft"), (theme, scheme)
+            assert style(wrong, "background-color") == bg("--wrong-soft"), (theme, scheme)
             assert "✓" in style(correct, "content", "'::after'"), "correct mark"
             assert "✗" in style(wrong, "content", "'::after'"), "wrong mark"
             assert style(questions.nth(1).locator(".opt").filter(has_text="A pair"), "content", "'::after'") in ("none", "normal")
-            assert style(questions.nth(0).locator(".rat"), "border-left-color") == want_wrong
-            assert style(questions.nth(1).locator(".rat"), "border-left-color") == want_correct
             check_layout(page, 320)
             site.healthy()
             context.close()
@@ -987,6 +1106,7 @@ if __name__ == "__main__":
         home_link(browser)
         quiz_result_colours(browser)
         navigation(browser)
+        contents_and_drawer(browser)
         immutable_release_root(browser)
         accessibility_regressions(browser)
         german_reader(browser, args.screenshots)

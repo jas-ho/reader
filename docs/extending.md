@@ -21,9 +21,9 @@ Everything a theme expresses comes from these tokens; `styles.css` keeps only st
 | `--signal`, `--signal-soft` | Emphasis: essential badge, audio warnings, skip hover |
 | `--done` | Text colour of completed and dropped titles |
 | `--correct`, `--correct-soft`, `--wrong`, `--wrong-soft` | Quiz results. Default to accent and signal; set them when either is red or green, so a right answer never looks like an error |
-| `--font-body`, `--font-heading`, `--font-ui` | Reading text; headings; labels and small buttons |
+| `--font-body`, `--font-heading` | Reading text and controls; headings |
 | `--radius` | Corners of cards, controls and dialogs (`0` for square) |
-| `--shadow`, `--bar-shadow`, `--backdrop` | Card shadow; bottom bar shadow; dialog backdrop |
+| `--shadow`, `--bar-shadow`, `--backdrop` | Dialog shadow; bottom bar shadow; dialog backdrop |
 | `--jasho-sync-*` | Colours, font, corners and shadow handed to the optional sync widget; mapped from the tokens above |
 
 Set semantic and derived tokens on `:root` like the palette; they resolve there. Quiz results also show a ✓ or ✗ mark, so they never depend on colour alone.
@@ -51,7 +51,7 @@ For a “revisit later” action:
 
 - Store the reader's choice in `state.js`.
 - Add the control in `render.js` and its event handler in `reader.js`.
-- Decide how it interacts with done/dropped progress and next-item navigation.
+- Decide how it interacts with done/dropped progress and navigation. Next, "Done, next" and the contents sheet share one notion of position (`currentCard`, `nextAfter`, `goTo` in `reader.js`); reuse those rather than adding another.
 - Define persistence defaults, behavior when older saved state lacks the field, and whether older versions can preserve it.
 - If sync is enabled, update `flatten` and `unflatten` in `state.js`. Test saving, resets and deletions. Local-only tabs use last-write-wins snapshots; test concurrent edits if the feature needs merging.
 - Decide whether to include the choice in `export.js`.
