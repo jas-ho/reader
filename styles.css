@@ -39,13 +39,13 @@ h1{
 /* ---------- item ---------- */
 .item{
   scroll-margin-top:1rem;
-  background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);
   padding:.95rem 1rem 1rem;margin:0 0 .8rem;box-shadow:var(--shadow);
 }
 .head{display:flex;gap:.75rem;align-items:flex-start;min-height:44px}
 .box{
   flex:0 0 auto;width:22px;height:22px;margin-top:.28rem;border:1.5px solid var(--rule);
-  border-radius:3px;display:grid;place-items:center;color:transparent;font-size:14px;
+  border-radius:var(--radius);display:grid;place-items:center;color:transparent;font-size:14px;
   background:transparent;position:relative;padding:0;cursor:pointer;
   -webkit-appearance:none;appearance:none;font-family:inherit;
 }
@@ -59,7 +59,7 @@ h1{
   line-height:1.25;margin:0;letter-spacing:-.005em;flex:1;text-wrap:balance;
 }
 .metadata{display:flex;flex-wrap:wrap;gap:.15rem .65rem;margin-top:.25rem;color:var(--muted);font-size:.82rem;line-height:1.45}
-.priority{border:1px solid var(--rule);border-radius:3px;padding:0 .35rem;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
+.priority{border:1px solid var(--rule);border-radius:var(--radius);padding:0 .35rem;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
 .priority-essential{border-color:var(--signal);background:var(--signal-soft);color:var(--signal);font-weight:600}
 .item[data-state="done"] .head h3,
 .item[data-state="dropped"] .head h3{color:var(--done);text-decoration:line-through}
@@ -97,47 +97,47 @@ details.closeout > summary .sumtxt{color:var(--muted);font-size:.8rem;margin-lef
 .item-footer > .drop{position:absolute;right:0;top:.2rem;max-width:5.3rem}
 .closeout .field{margin-top:.6rem}
 .closeout label{
-  display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  display:block;font-family:var(--font-ui);
   font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
 }
 .closeout textarea{
   width:100%;margin-top:.3rem;min-height:4.6rem;resize:vertical;
   background:var(--ground);color:var(--ink);border:1px solid var(--rule);
-  border-radius:3px;padding:.6rem;font:inherit;font-size:.93rem;line-height:1.5;
+  border-radius:var(--radius);padding:.6rem;font:inherit;font-size:.93rem;line-height:1.5;
 }
 .closeout .quiz{box-shadow:none;margin:.7rem 0 0;background:var(--ground)}
 .gate{display:flex;flex-wrap:wrap;gap:0 .4rem;align-items:baseline;padding:.2rem 1rem .8rem;color:var(--muted);font-size:.88rem}
 .tools{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:.5rem;margin-top:.7rem}
 .tools button,.barrow > button,.handoff button{
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-family:var(--font-ui);
   font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;
   background:transparent;color:var(--accent);border:1px solid var(--rule);
-  border-radius:3px;padding:.5rem .7rem;cursor:pointer;min-height:44px;
+  border-radius:var(--radius);padding:.5rem .7rem;cursor:pointer;min-height:44px;
   display:inline-flex;align-items:center;gap:.4rem;
 }
 .tools button:hover,.barrow > button:hover{border-color:var(--accent)}
 .drop{
   background:transparent;border:none;color:var(--muted);cursor:pointer;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-family:var(--font-ui);
   font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
   padding:.5rem .1rem;min-height:44px;
 }
 .drop:hover{color:var(--signal)}
 
 /* freeform + export */
-.pad{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:1rem;margin:0 0 2rem;box-shadow:var(--shadow)}
+.pad{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:1rem;margin:0 0 2rem;box-shadow:var(--shadow)}
 .pad h2{font-family:var(--font-heading);font-weight:500;font-size:1.2rem;margin:0 0 .5rem}
 .pad p{color:var(--muted);font-size:.9rem;margin:0 0 .6rem}
 .pad textarea{
   width:100%;min-height:7rem;resize:vertical;background:var(--ground);color:var(--ink);
-  border:1px solid var(--rule);border-radius:3px;padding:.6rem;font:inherit;font-size:.93rem;line-height:1.5;
+  border:1px solid var(--rule);border-radius:var(--radius);padding:.6rem;font:inherit;font-size:.93rem;line-height:1.5;
 }
 /* ---------- bottom bar ---------- */
 .bar{
   position:fixed;left:0;right:0;bottom:0;z-index:50;
   background:var(--surface);border-top:1px solid var(--rule);
   padding-bottom:env(safe-area-inset-bottom,0px);
-  box-shadow:0 -8px 24px -18px rgba(20,32,31,.45);
+  box-shadow:var(--bar-shadow);
 }
 .barrow{
   max-width:44rem;margin:0 auto;display:flex;align-items:center;gap:.5rem .7rem;
@@ -152,16 +152,16 @@ details.closeout > summary .sumtxt{color:var(--muted);font-size:.8rem;margin-lef
 .bar .tx2{display:none}
 @media(min-width:700px){ .bar .tx2{display:inline} }
 /* The handoff is a dialog, separate from the fixed bar and its keyboard rules. */
-.handoff{width:min(40rem,calc(100% - 1.5rem));max-height:85vh;max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:1rem;box-shadow:var(--shadow)}
-.handoff::backdrop{background:rgba(0,0,0,.45)}
+.handoff{width:min(40rem,calc(100% - 1.5rem));max-height:85vh;max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow)}
+.handoff::backdrop{background:var(--backdrop)}
 .handoff h2{font-family:var(--font-heading);font-size:1.35rem;margin:0}
 .handoff p{font-size:.9rem;margin:.7rem 0}
-.handoff textarea{display:block;width:100%;height:12rem;resize:vertical;border:1px solid var(--rule);border-radius:3px;background:var(--ground);color:var(--ink);padding:.6rem;font: .82rem/1.5 ui-monospace,monospace}
+.handoff textarea{display:block;width:100%;height:12rem;resize:vertical;border:1px solid var(--rule);border-radius:var(--radius);background:var(--ground);color:var(--ink);padding:.6rem;font:.82rem/1.5 var(--font-ui)}
 .handoff .tools{justify-content:flex-start}
 .handoff label{display:block;margin:.5rem 0;font-size:.83rem}
 @media(max-width:699px){ body:has(.wrap textarea:focus) .bar{display:none} }
 /* ---------- quizzes ---------- */
-.quiz{background:var(--surface);border:1px solid var(--rule);border-radius:3px;margin:0 0 .8rem;box-shadow:var(--shadow);overflow:hidden}
+.quiz{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);margin:0 0 .8rem;box-shadow:var(--shadow);overflow:hidden}
 .quiz > summary{
   font-family:var(--font-heading);font-weight:500;font-size:1.2rem;
   padding:.95rem 1rem;cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:.6rem;min-height:44px
@@ -169,22 +169,27 @@ details.closeout > summary .sumtxt{color:var(--muted);font-size:.8rem;margin-lef
 .quiz > summary::-webkit-details-marker{display:none}
 .quiz > summary::after{content:"›";margin-left:auto;color:var(--muted);font-size:1.3rem;transition:transform .15s}
 .quiz[open] > summary::after{transform:rotate(90deg)}
-.quiz > summary .qscore{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;letter-spacing:.04em;color:var(--muted);font-weight:normal}
+.quiz > summary .qscore{font-family:var(--font-ui);font-size:.74rem;letter-spacing:.04em;color:var(--muted);font-weight:normal}
 .qbody{padding:0 1rem 1rem}
 .q{border-top:1px solid var(--rule);padding:.9rem 0 .2rem}
 .q .qtext{font-size:.95rem;line-height:1.45;margin:0 0 .6rem;font-weight:500}
 .opt{
-  display:block;width:100%;text-align:left;font:inherit;font-size:.9rem;line-height:1.4;
-  background:var(--ground);color:var(--ink);border:1px solid var(--rule);border-radius:3px;
-  padding:.6rem .7rem;margin:0 0 .4rem;cursor:pointer;min-height:44px;
+  display:block;width:100%;text-align:left;font:inherit;font-size:.9rem;line-height:1.4;position:relative;
+  background:var(--ground);color:var(--ink);border:1px solid var(--rule);border-radius:var(--radius);
+  padding:.6rem 2rem .6rem .7rem;margin:0 0 .4rem;cursor:pointer;min-height:44px;
   -webkit-appearance:none;appearance:none;transition:border-color .12s,background .12s
 }
 .opt:hover:not([aria-disabled="true"]){border-color:var(--accent)}
-.q.answered .opt.correct{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
-.q.answered .opt.wrong{border-color:var(--signal);background:var(--signal-soft)}
-.rat{font-size:.86rem;line-height:1.5;color:var(--muted);border-left:2px solid var(--accent);padding:.15rem 0 .15rem .7rem;margin:.2rem 0 .3rem;display:none}
+.q.answered .opt.correct{border-color:var(--correct);background:var(--correct-soft);color:var(--ink)}
+.q.answered .opt.wrong{border-color:var(--wrong);background:var(--wrong-soft)}
+/* Marks carry the result without colour; the status text below announces it, so they stay silent. */
+.q.answered .opt.correct::after,.q.answered .opt.wrong::after{position:absolute;right:.7rem;top:.6rem;font-weight:700}
+.q.answered .opt.correct::after{content:"\2713";content:"\2713" / "";color:var(--correct)}
+.q.answered .opt.wrong::after{content:"\2717";content:"\2717" / "";color:var(--wrong)}
+.rat{font-size:.86rem;line-height:1.5;color:var(--muted);border-left:2px solid var(--correct);padding:.15rem 0 .15rem .7rem;margin:.2rem 0 .3rem;display:none}
 .q.answered .rat{display:block}
-.qreset{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--accent);border:none;cursor:pointer;padding:.4rem 0;margin-top:.3rem}
+.q.answered:has(.opt.wrong) .rat{border-left-color:var(--wrong)}
+.qreset{font-family:var(--font-ui);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--accent);border:none;cursor:pointer;padding:.4rem 0;margin-top:.3rem}
 
 footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);font-size:.84rem;line-height:1.6}
 
@@ -200,7 +205,7 @@ footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);fo
 .audio-description{color:var(--muted)}
 .audio-warning{color:var(--signal);border-left:2px solid var(--signal);padding-left:.5rem}
 .audio-option audio{display:block;flex:1 1 12rem;width:100%;min-width:0;max-width:26rem}
-.audio-start{display:inline-flex;align-items:center;gap:.4rem;min-height:44px;font:inherit;font-size:.9rem;color:var(--accent);background:transparent;border:1px solid var(--rule);border-radius:3px;padding:.3rem .65rem;cursor:pointer}
+.audio-start{display:inline-flex;align-items:center;gap:.4rem;min-height:44px;font:inherit;font-size:.9rem;color:var(--accent);background:transparent;border:1px solid var(--rule);border-radius:var(--radius);padding:.3rem .65rem;cursor:pointer}
 .audio-start:hover{border-color:var(--accent)}
 .audio-details{display:inline-flex;align-items:center;gap:.4rem;min-height:44px;font:inherit;font-size:.85rem;color:var(--muted);background:transparent;border:0;padding:.3rem .2rem;cursor:pointer}
 .audio-source{margin-top:.4rem;font-size:.85rem}
@@ -210,4 +215,9 @@ footer{border-top:1px solid var(--rule);padding-top:1.2rem;color:var(--muted);fo
 .opt[aria-disabled="true"]{cursor:default}
 #startup-error{white-space:pre-line;overflow-wrap:anywhere}
 
+/* The box's tick is always in the DOM and hidden by colour; forced colours would show it on every box. */
+@media(forced-colors:active){
+  .box{color:Canvas}
+  .item[data-state="done"] .box,.subs > li[data-state="done"] .box{color:CanvasText}
+}
 @media(prefers-reduced-motion:reduce){ .quiz > summary::after,.chevron{transition:none} }

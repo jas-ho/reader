@@ -138,6 +138,7 @@ class Site:
         self.unexpected = []
         self.media = {}
         self.sync_script = None
+        self.theme_css = None
         self.hold_config = False
         self.pending_config = None
         page.on("pageerror", lambda error: self.errors.append(str(error)))
@@ -177,6 +178,8 @@ class Site:
                 route.fulfill(json=self.config)
         elif relative == "content/list.json":
             route.fulfill(json=self.data)
+        elif relative == "custom-theme.css" and self.theme_css is not None:
+            route.fulfill(body=self.theme_css, content_type="text/css")
         elif relative == "test-sync.js" and self.sync_script is not None:
             route.fulfill(body=self.sync_script, content_type="text/javascript")
         elif relative in {
@@ -795,6 +798,55 @@ def home_link(browser):
     context.close()
 
 
+def quiz_result_colours(browser):
+    """Quiz results use semantic tokens (defaulting to the palette), carry marks, and the
+    explanation border follows the result; a theme can separate correct from accent."""
+    custom = (
+        ":root{--correct:#1f7a3a;--correct-soft:#e2f0e5}"
+        "@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--correct:#6fcb8a;--correct-soft:#1d2e22}}"
+    )
+    expected = {"light": "rgb(31, 122, 58)", "dark": "rgb(111, 203, 138)"}
+    for theme in (None, custom):
+        for scheme in ("light", "dark"):
+            context = browser.new_context(viewport={"width": 320, "height": 900}, color_scheme=scheme)
+            page = context.new_page()
+            site = Site(page, course())
+            if theme:
+                site.config["theme"] = "custom-theme.css"
+                site.theme_css = theme
+            site.open()
+            card = page.locator('.item[data-id="first-reading"]')
+            card.locator(".closeout > summary").click()
+            card.locator(".quiz > summary").click()
+            card.locator(".gate button").click()
+            questions = card.locator(".q")
+            questions.nth(0).locator(".opt").filter(has_text="An infinite set").click()  # wrong
+            questions.nth(1).locator(".opt").filter(has_text="The empty set").click()  # right
+            page.wait_for_timeout(300)  # let the border transition settle before reading colours
+            style = lambda loc, prop, pseudo="null": loc.evaluate(
+                f"(el, p) => getComputedStyle(el, {pseudo}).getPropertyValue(p)", prop
+            )
+            correct = questions.nth(0).locator(".opt.correct")
+            wrong = questions.nth(0).locator(".opt.wrong")
+            resolve = lambda name: page.evaluate(
+                "n => { const d = document.createElement('i'); d.style.color = `var(${n})`;"
+                " document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }",
+                name,
+            )
+            want_correct = expected[scheme] if theme else resolve("--accent")
+            want_wrong = resolve("--signal")
+            assert style(correct, "border-top-color") == want_correct, (theme, scheme)
+            assert style(wrong, "border-top-color") == want_wrong, (theme, scheme)
+            assert "✓" in style(correct, "content", "'::after'"), "correct mark"
+            assert "✗" in style(wrong, "content", "'::after'"), "wrong mark"
+            assert style(questions.nth(1).locator(".opt").filter(has_text="A pair"), "content", "'::after'") in ("none", "normal")
+            assert style(questions.nth(0).locator(".rat"), "border-left-color") == want_wrong
+            assert style(questions.nth(1).locator(".rat"), "border-left-color") == want_correct
+            check_layout(page, 320)
+            site.healthy()
+            context.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
@@ -806,6 +858,7 @@ if __name__ == "__main__":
         startup_errors(browser)
         incompatible_sync_stays_local(browser)
         home_link(browser)
+        quiz_result_colours(browser)
         immutable_release_root(browser)
         accessibility_regressions(browser)
         german_reader(browser, args.screenshots)

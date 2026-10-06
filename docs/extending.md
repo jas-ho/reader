@@ -10,6 +10,24 @@ For a custom tab icon, add a self-contained `favicon.svg` to the instance folder
 
 Override properties from `theme.css`. Include dark-mode colors using both `@media (prefers-color-scheme: dark)` with `:root:not([data-theme="light"])` and `:root[data-theme="dark"]`. The assembler does not copy images or fonts referenced from CSS; use system fonts or host these assets separately.
 
+Everything a theme expresses comes from these tokens; `styles.css` keeps only structure (spacing, sizes, z-index, transitions) literal, and a unit test enforces that. Selector overrides in a theme are for one-off typographic touches, not for colours, fonts or corners.
+
+| Token | Meaning |
+| --- | --- |
+| `--ground`, `--surface` | Page background; cards, bar and dialogs |
+| `--ink`, `--muted` | Main text; secondary text |
+| `--rule` | Borders and dividers |
+| `--accent`, `--accent-soft` | Links, focus, interactive hover, ticked boxes |
+| `--signal`, `--signal-soft` | Emphasis: essential badge, audio warnings, skip hover |
+| `--done` | Text colour of completed and dropped titles |
+| `--correct`, `--correct-soft`, `--wrong`, `--wrong-soft` | Quiz results. Default to accent and signal; set them when either is red or green, so a right answer never looks like an error |
+| `--font-body`, `--font-heading`, `--font-ui` | Reading text; headings; labels and small buttons |
+| `--radius` | Corners of cards, controls and dialogs (`0` for square) |
+| `--shadow`, `--bar-shadow`, `--backdrop` | Card shadow; bottom bar shadow; dialog backdrop |
+| `--jasho-sync-*` | Colours, font, corners and shadow handed to the optional sync widget; mapped from the tokens above |
+
+Set semantic and derived tokens on `:root` like the palette; they resolve there. Quiz results also show a ✓ or ✗ mark, so they never depend on colour alone.
+
 Preview long titles and notes at phone and desktop widths. Check keyboard focus, contrast and quiz feedback in both color themes. Edit `styles.css` to change the layout.
 
 The reader follows the system color preference. The `data-theme` selectors support a toggle if you add one; the reader does not set that attribute itself.
