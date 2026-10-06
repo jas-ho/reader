@@ -8,9 +8,9 @@ Built for reading groups and self-paced courses: readers track progress and note
 
 **Live demo:** [jas-ho.github.io/reader](https://jas-ho.github.io/reader/) (a book club and a course with a custom theme).
 
-![Demo: tick off a reading, write recall and a note, then hand the context to a chatbot](docs/img/reader-demo.gif)
+![Demo: write recall and a note, open the chatbot handoff, finish with Done next, then open the contents sheet](docs/img/reader-demo.gif)
 
-![Course example: a week with checkable parts, audio link and the recall/note/quiz panel](docs/img/course-example.png)
+![Course example: a reading with jumps into its guide, timed parts, an audio link and computed totals](docs/img/course-example.png)
 
 ## Try it
 
@@ -52,6 +52,8 @@ The browser acceptance tests require `uv`, Python 3.12 or newer, and Playwright 
 uv run --with playwright playwright install chromium
 uv run tests/browser.py --screenshots tmp/browser-screenshots
 ```
+
+After visible UI changes, regenerate the README images with `uv run scripts/demo-media.py` (also needs [gifski](https://gif.ski)).
 
 `uv` installs the script's Python dependencies. Playwright may need additional system libraries on Linux. Tests use isolated storage and intercepted requests with test data. They cover mobile/desktop layouts, downloads, saved state, error handling and release hosting. The screenshots flag is optional.
 
