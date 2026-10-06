@@ -41,12 +41,15 @@ export function validateList(list) {
       if (typeof value !== 'string' || !protocols.includes(parsed.protocol) || parsed.username || parsed.password) throw Error();
     } catch { error(path, `expected an absolute ${protocols.map(protocol => protocol.slice(0, -1).toUpperCase()).join('/')} URL without credentials`); }
   }
-  function links(value, path) {
+  // A link may name places inside its source (`jumps`): sections, pages or quoted passages,
+  // typically text-fragment (#:~:text=) or #page= URLs. One level deep.
+  function links(value, path, nested = false) {
     array(value, path).forEach((link, index) => {
       const p = `${path}[${index}]`;
-      if (!object(link, p, ['label', 'url'])) return;
+      if (!object(link, p, nested ? ['label', 'url'] : ['label', 'url', 'jumps'])) return;
       text(link.label, `${p}.label`, true);
       url(link.url, `${p}.url`);
+      if (!nested) links(link.jumps, `${p}.jumps`, true);
     });
   }
   function audio(value, path) {

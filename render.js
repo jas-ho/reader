@@ -12,12 +12,14 @@ export function button(className, text, label) {
   if (label) node.setAttribute('aria-label', label);
   return node;
 }
-function renderLinks(links = []) {
-  const ul = element('ul', 'source-links');
+function renderLinks(links = [], className = 'source-links') {
+  const ul = element('ul', className);
   for (const link of links) {
     const li = element('li'), a = element('a', '', link.label);
     a.href = link.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-    li.append(a); ul.append(li);
+    li.append(a);
+    if (link.jumps?.length) li.append(renderLinks(link.jumps, 'jumps')); // places inside this source
+    ul.append(li);
   }
   return ul;
 }

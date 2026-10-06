@@ -19,7 +19,7 @@ export function itemBlock(item, state, number, language = 'en') {
   lines.push('', '### ' + t('sources'));
   const links = allLinks(item);
   if (!links.length && !item.audio?.length && !(item.parts || []).some(part => part.audio?.length)) lines.push(t('noSource'));
-  for (const link of links) lines.push(`- ${link.label}: ${link.url}`);
+  for (const link of links) lines.push(`- ${link.label}: ${link.url}`, ...(link.jumps || []).map(jump => `  - ${jump.label}: ${jump.url}`));
   if (item.audio?.length) {
     lines.push('', '### ' + t('audio'));
     for (const recording of item.audio) lines.push(`- ${recording.label}: ${recording.url}`, quoted(audioDescription(recording)));
@@ -30,7 +30,7 @@ export function itemBlock(item, state, number, language = 'en') {
       const value = state.items[part.id];
       lines.push(`- [${value === 'done' ? 'x' : value === 'dropped' ? '-' : ' '}] ${part.title}`);
       if (part.description) lines.push(quoted(part.description));
-      for (const link of part.links || []) lines.push(`  - ${link.label}: ${link.url}`);
+      for (const link of part.links || []) lines.push(`  - ${link.label}: ${link.url}`, ...(link.jumps || []).map(jump => `    - ${jump.label}: ${jump.url}`));
       for (const recording of part.audio || []) lines.push(`  - ${t('audio')}: ${recording.label}: ${recording.url}`, quoted(audioDescription(recording)));
     }
   }

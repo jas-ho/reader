@@ -122,6 +122,9 @@ for (const [name, modify, path] of [
   ['section typo', list => { list.sections[0].titel = 'Start'; }, 'titel'],
   ['item typo', list => { firstItem(list).soruces = []; }, 'soruces'],
   ['link typo', list => { firstItem(list).links[0].href = 'https://example.org/'; }, 'href'],
+  ['jump without url', list => { firstItem(list).links[0].jumps = [{ label: 'Section 2' }]; }, 'jumps[0].url'],
+  ['jump with script url', list => { firstItem(list).links[0].jumps = [{ label: 'Section 2', url: 'javascript:alert(1)' }]; }, 'jumps[0].url'],
+  ['nested jumps rejected', list => { firstItem(list).links[0].jumps = [{ label: 'A', url: 'https://example.org/#a', jumps: [] }]; }, 'jumps[0].jumps'],
   ['part typo', list => { firstItem(list).parts[0].descripton = 'Try this'; }, 'descripton'],
   ['quiz typo', list => { firstQuiz(list).question = []; }, 'question'],
   ['question typo', list => { firstQuestion(list).answers = []; }, 'answers'],
@@ -404,6 +407,18 @@ test('an unknown stable answer is preserved rather than encoded as a numeric ans
   assert.ok(!Object.hasOwn(wire.quiz, 'qz0v2_0'));
   assert.equal(wire.quiz['argument-check/assumption'], 'retired-choice');
   assert.deepEqual(codec.decode(wire), state);
+});
+
+test('jumps into a source validate and export under their link', () => {
+  const list = courseList();
+  const item = firstItem(list);
+  item.links[0].jumps = [
+    { label: 'Section 2: Method', url: 'https://example.org/guide#:~:text=Method' },
+    { label: 'Appendix, page 12', url: 'https://example.org/guide.pdf#page=12' },
+  ];
+  assert.deepEqual(validateList(list), []);
+  const markdown = buildExport(list, emptyState(), item.id);
+  assert.ok(markdown.includes(`- ${item.links[0].label}: ${item.links[0].url}\n  - Section 2: Method: https://example.org/guide#:~:text=Method\n  - Appendix, page 12: https://example.org/guide.pdf#page=12`), markdown);
 });
 
 test('export works for a linkless book and waits for the reader question', () => {
