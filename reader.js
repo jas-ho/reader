@@ -286,6 +286,9 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
     if (many) { body.prepend(steps); body.append(nav, outcome); }
     body.append(reset); details.append(gate, body); card.querySelector('.qslot').append(details);
     details.addEventListener('toggle', () => { if (details.open && !moved) { step = firstOpen(); paint(); } if (details.open) centreStep(); });
+    // Steps that widened while the drawer was closed could not be measured; check again when it opens.
+    const drawer = card.querySelector('.closeout');
+    drawer.addEventListener('toggle', () => { if (drawer.open && details.open) keepStep(); });
     // Long quizzes scroll their steps sideways: bring the current one to the middle of the row.
     function centreStep() { const chip = chips[step]; if (many && chip) steps.scrollLeft = chip.offsetLeft - (steps.clientWidth - chip.offsetWidth) / 2; }
     // An outcome widens its step; keep the current one whole without moving the row otherwise.

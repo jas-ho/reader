@@ -1190,6 +1190,14 @@ def quiz_stepper(browser):
     page.evaluate("p => { const s = p.get(), quiz = {...s.quiz}; for (let i = 10; i < 23; i++) quiz[`many/s${i}`] = 'a'; p.set({...s, quiz}); }", page.evaluate_handle("window.readerPage"))
     expect(steps.last).to_have_text("13 ✓")
     assert steps.last.evaluate(whole), "current step clipped"
+    # The same while the drawer is closed: it is checked again when the drawer opens.
+    page.evaluate("p => { const s = p.get(); p.set({...s, quiz: {}}); }", page.evaluate_handle("window.readerPage"))
+    expect(steps.last).to_have_text("13")
+    long.locator(".closeout > summary").click()
+    page.evaluate("p => { const s = p.get(), quiz = {...s.quiz}; for (let i = 10; i < 23; i++) quiz[`many/s${i}`] = 'a'; p.set({...s, quiz}); }", page.evaluate_handle("window.readerPage"))
+    long.locator(".closeout > summary").click()
+    expect(steps.last).to_have_text("13 ✓")
+    assert steps.last.evaluate(whole), "current step clipped after reopening"
     check_layout(page, 320)
     site.healthy()
     context.close()
