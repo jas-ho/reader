@@ -110,9 +110,10 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
   }, true);
   // Go to a reading card, a section or the top (the .wrap): bring it to the top of the screen,
   // focus its heading and make it where the reader is, even where the page cannot scroll that far.
-  function goTo(target, smooth = true) {
+  // `top` puts another element above it at the top of the screen instead, such as the reading just finished.
+  function goTo(target, smooth = true, top = target) {
     tapGuardUntil = performance.now() + 400;
-    jumpScroll(target, smooth && !reducedMotion());
+    jumpScroll(top, smooth && !reducedMotion());
     target.querySelector(target.matches('.item') ? '.head h3' : 'h1, h2').focus({preventScroll: true});
     anchor = target;
   }
@@ -185,8 +186,11 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
       if (state.items[item.id] !== 'done') { state.items[item.id] = 'done'; paintProgress(card); }
       settle(true);
       const target = nextAfter(card);
+      if (!target) { land(card.querySelector('.head h3')); return; }
       // The card has just collapsed under the reader; jump rather than glide from a shifted position.
-      if (target) goTo(cards.get(target.id), false); else land(card.querySelector('.head h3'));
+      // The reading just finished stays in sight above the next one when that one follows close below.
+      const next = cards.get(target.id), gap = next.getBoundingClientRect().top - card.getBoundingClientRect().top;
+      goTo(next, false, gap > 0 && gap < innerHeight / 2 ? card : next);
     });
     for (const part of card.querySelectorAll('.subs > li')) {
       part.querySelector('.box').addEventListener('click', () => {

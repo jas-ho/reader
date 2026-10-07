@@ -1087,6 +1087,7 @@ def navigation(browser):
     expect(card(3).locator(".body")).to_be_visible()
 
     # Done, next: marks done, folds, and moves to the next unfinished reading after this one.
+    # Reading 3 is shown in full, so reading 4 starts more than half a screen below 2: it goes to the top.
     card(2).locator(".next1").scroll_into_view_if_needed()
     expect(card(2).locator(".next1")).to_have_text("Done, next")
     card(2).locator(".next1").click()
@@ -1104,8 +1105,11 @@ def navigation(browser):
     box = card(4).locator(".next1").bounding_box()
     x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
     page.mouse.click(x, y)  # Done, next: the page jumps to reading 5
+    expect(heading(5)).to_be_focused()
     page.mouse.click(x, y)  # the same finger again, now over reading 5
-    page.wait_for_function("Math.abs(document.querySelector('.item[data-id=r5]').getBoundingClientRect().top) < 40")
+    # Reading 5 follows close below: the reading just finished stays in sight on top, 5 under it.
+    page.wait_for_function("Math.abs(document.querySelector('.item[data-id=r4]').getBoundingClientRect().top) < 40")
+    assert 0 < top(card(5)) < 844 / 2, top(card(5))
     assert page.evaluate("window.readerPage.get().items") == {**before, "r4": "done"}
     # Keyboard activation right after a jump is never a stray tap.
     page.wait_for_timeout(450)
