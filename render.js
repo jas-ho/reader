@@ -24,6 +24,11 @@ function renderLinks(links = [], className = 'source-links') {
   }
   return ul;
 }
+// "Read: sections 2.3 and 4.2", right above the sources it refers to.
+function renderScope(scope, t) {
+  const line = element('p', 'scope'), label = element('span', 'scope-label', `${t('scope')}: `);
+  line.append(label, scope); return line;
+}
 function field(item, className, label, prompt) {
   const wrap = element('div', 'field'), lab = element('label', '', label), input = element('textarea', className);
   input.id = `${className}/${item.id}`; input.rows = 2; input.placeholder = prompt; // IDs are slugs: the slash keeps namespaces apart
@@ -107,6 +112,7 @@ export function renderItem(item, list, language = 'en') {
   // The instruction first; the curator's reason after it, quieter.
   if (item.description) body.append(element('p', 'what prose', item.description));
   if (item.why) body.append(element('p', 'why prose', item.why));
+  if (item.scope) body.append(renderScope(item.scope, t));
   if (item.links?.length) body.append(renderLinks(item.links));
   if (item.audio?.length) body.append(renderAudio(item.audio, t, item.id));
   if (item.parts?.length) {
@@ -116,6 +122,7 @@ export function renderItem(item, list, language = 'en') {
       const text = element('div', 'txt'); text.append(element('span', '', part.title));
       if (part.minutes !== undefined) text.append(element('span', 'minutes', ` · ${formatMinutes(part.minutes, language)}`));
       if (part.description) text.append(element('p', 'prose', part.description));
+      if (part.scope) text.append(renderScope(part.scope, t));
       if (part.links?.length) text.append(renderLinks(part.links));
       if (part.audio?.length) text.append(renderAudio(part.audio, t, part.id));
       li.append(button('box', '✓', t('markDone', {title: part.title})), text); ul.append(li);

@@ -575,3 +575,14 @@ test('export keeps every source with its owner, once, with its jumps, under list
   assert.equal(full.split('Week one sets up').length - 1, 1, 'a full export states each section once');
   assert.ok(buildExport(list, emptyState(), item.id, 'de').includes(`Abschnitt: ${list.sections[0].title}`));
 });
+
+test('scope says what to read: optional text on items and parts, exported with its owner', () => {
+  const list = courseList(), item = firstItem(list);
+  item.scope = 'sections 2 and 3'; item.parts[0].scope = 'pages 4 to 6';
+  assert.deepEqual(validateList(list), []);
+  const markdown = buildExport(list, emptyState(), item.id);
+  assert.ok(markdown.includes('\nWhat to read (curator): sections 2 and 3\n'), markdown);
+  assert.ok(markdown.includes('  What to read (curator): pages 4 to 6'), markdown);
+  item.scope = 7; item.parts[0].scope = false;
+  assert.deepEqual(validateList(list).map(e => e.split(':')[0]).sort(), ['list.sections[0].items[0].parts[0].scope', 'list.sections[0].items[0].scope'].sort());
+});

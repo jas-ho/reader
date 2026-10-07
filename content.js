@@ -83,9 +83,9 @@ export function validateList(list) {
     id(section.id, `${sp}.id`, sectionIDs); text(section.title, `${sp}.title`, true); text(section.description, `${sp}.description`);
     array(section.items, `${sp}.items`, 1, false).forEach((item, ii) => {
       const ip = `${sp}.items[${ii}]`;
-      if (!object(item, ip, ['id', 'title', 'byline', 'description', 'why', 'priority', 'minutes', 'effort', 'links', 'audio', 'parts', 'quizzes'])) return;
+      if (!object(item, ip, ['id', 'title', 'byline', 'description', 'why', 'scope', 'priority', 'minutes', 'effort', 'links', 'audio', 'parts', 'quizzes'])) return;
       id(item.id, `${ip}.id`, progressIDs); text(item.title, `${ip}.title`, true);
-      for (const field of ['byline', 'description', 'why']) text(item[field], `${ip}.${field}`);
+      for (const field of ['byline', 'description', 'why', 'scope']) text(item[field], `${ip}.${field}`);
       if (item.priority !== undefined && !PRIORITIES.includes(item.priority)) error(`${ip}.priority`, `expected one of ${PRIORITIES.join(', ')}`);
       minutes(item.minutes, `${ip}.minutes`);
       array(item.effort, `${ip}.effort`).forEach((v, i) => text(v, `${ip}.effort[${i}]`, true));
@@ -93,8 +93,8 @@ export function validateList(list) {
       audio(item.audio, `${ip}.audio`);
       array(item.parts, `${ip}.parts`).forEach((part, pi) => {
         const pp = `${ip}.parts[${pi}]`;
-        if (!object(part, pp, ['id', 'title', 'description', 'minutes', 'links', 'audio'])) return;
-        id(part.id, `${pp}.id`, progressIDs); text(part.title, `${pp}.title`, true); text(part.description, `${pp}.description`); links(part.links, `${pp}.links`);
+        if (!object(part, pp, ['id', 'title', 'description', 'scope', 'minutes', 'links', 'audio'])) return;
+        id(part.id, `${pp}.id`, progressIDs); text(part.title, `${pp}.title`, true); text(part.description, `${pp}.description`); text(part.scope, `${pp}.scope`); links(part.links, `${pp}.links`);
         minutes(part.minutes, `${pp}.minutes`);
         audio(part.audio, `${pp}.audio`);
       });

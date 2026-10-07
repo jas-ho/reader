@@ -17,6 +17,7 @@ export function itemBlock(item, state, number, language = 'en', section = null) 
   if (item.byline) lines.push(item.byline);
   if (item.priority) lines.push(`${t('priority')}: ${t(item.priority)}`);
   if (item.description) lines.push('', '### ' + t('readingInstructions'), quoted(item.description));
+  if (item.scope) lines.push('', `${t('scopeExport')}: ${item.scope}`);
   const minutes = itemMinutes(item);
   if (minutes !== null) lines.push('', `${t('time')}: ${formatMinutes(minutes, language)}`);
   if (item.effort?.length) lines.push('', `${t('effort')}: ${item.effort.join(' · ')}`);
@@ -36,6 +37,7 @@ export function itemBlock(item, state, number, language = 'en', section = null) 
       const time = part.minutes === undefined ? '' : ` (${formatMinutes(part.minutes, language)})`;
       lines.push(`- [${value === 'done' ? 'x' : value === 'dropped' ? '-' : ' '}] ${part.title}${time}`);
       if (part.description) lines.push(quoted(part.description));
+      if (part.scope) lines.push(`  ${t('scopeExport')}: ${part.scope}`);
       lines.push(...linkLines(part.links, '  '));
       for (const recording of part.audio || []) lines.push(`  - ${t('audio')}: ${recording.label}: ${recording.url}`, quoted(audioDescription(recording)));
     }

@@ -911,9 +911,14 @@ def parts_and_deep_links(browser):
     page = context.new_page()
     data = course()
     data["sections"][0]["items"][0]["parts"].append({"id": "second-exercise", "title": "A second exercise"})
+    data["sections"][0]["items"][0]["scope"] = "paragraphs 1 to 3"
     site = Site(page, data)
     site.open()
     card = page.locator('.item[data-id="first-reading"]')
+    # What to read sits right above the sources it refers to.
+    scope = card.locator(".body > .scope")
+    expect(scope).to_have_text("Read: paragraphs 1 to 3")
+    assert scope.evaluate("p => p.nextElementSibling.matches('.source-links')")
     card.locator(".head .box").click()
     expect(card).to_have_attribute("data-state", "done")
     card.locator(".item-footer > .show").click()

@@ -11,7 +11,8 @@
         {
           "id": "step-by-step",
           "title": "A repeatable recipe",
-          "description": "Read the guide, watch the companion and try the exercise. This reader tracks completion; it does not execute or grade code.",
+          "description": "A short guide to writing instructions someone else can follow, with a video that walks through the same example. The exercise is the point: this reader tracks completion; it does not execute or grade code.",
+          "scope": "the guide and the exercise; the video is optional",
           "why": "Distinguish a reusable instruction from the result of running it.",
           "links": [
             {
