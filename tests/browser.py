@@ -1080,6 +1080,8 @@ def quiz_stepper(browser):
     expect(steps.first).to_have_attribute("aria-label", "Question 1: right")
     expect(forward).to_have_text("Next question")
     expect(forward).to_have_class(re.compile("primary"))
+    # The tall question runs below the screen; Next stays reachable above the bar without scrolling.
+    assert in_view(forward), forward.bounding_box()
 
     # A quick second tap after Next must not answer the next question, which moved under the finger.
     forward.scroll_into_view_if_needed()
