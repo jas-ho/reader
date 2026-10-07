@@ -224,7 +224,7 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
     const total = quiz.questions.length, many = total > 1, body = element('div', 'qbody'), painters = [], rows = [];
     const answered = question => question.choices.some(choice => choice.id === state.quiz[quizKey(quiz, question)]);
     const firstOpen = () => { const index = quiz.questions.findIndex(question => !answered(question)); return index < 0 ? (many ? total : 0) : index; };
-    let step = firstOpen(), moved = false;
+    let step = firstOpen(), moved = false, hadAnswers = false, widened = false;
     const steps = element('div', 'qsteps'), chips = [];
     for (const [index] of quiz.questions.entries()) {
       const chip = button('qstep'); chip.addEventListener('click', () => go(index));
@@ -264,7 +264,7 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
         // The step keeps its number and adds the outcome, so a missed question can be found again.
         const chip = chips[index], chipText = `${index + 1}${done ? (right ? ' ✓' : ' ✗') : ''}`;
         const chipLabel = t('stepLabel', {n: index + 1, status: t(done ? (right ? 'stepRight' : 'stepWrong') : 'stepOpen')});
-        if (chip.textContent !== chipText) chip.textContent = chipText;
+        if (chip.textContent !== chipText) { chip.textContent = chipText; widened = true; }
         if (chip.getAttribute('aria-label') !== chipLabel) chip.setAttribute('aria-label', chipLabel);
         chip.classList.toggle('right', right); chip.classList.toggle('wrong', done && !right);
       });
@@ -288,7 +288,13 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
     details.addEventListener('toggle', () => { if (details.open && !moved) { step = firstOpen(); paint(); } if (details.open) centreStep(); });
     // Long quizzes scroll their steps sideways: bring the current one to the middle of the row.
     function centreStep() { const chip = chips[step]; if (many && chip) steps.scrollLeft = chip.offsetLeft - (steps.clientWidth - chip.offsetWidth) / 2; }
-    // The steps take the gate's place, so a second tap there lands on a step, never on a choice: no tap guard.
+    // An outcome widens its step; keep the current one whole without moving the row otherwise.
+    function keepStep() {
+      const chip = chips[step]; if (!chip?.offsetWidth) return;
+      if (chip.offsetLeft < steps.scrollLeft || chip.offsetLeft + chip.offsetWidth > steps.scrollLeft + steps.clientWidth) centreStep();
+    }
+    // The steps take the gate's place, so a second tap there lands on a step, never on a choice: no tap guard
+    // unless the page has to scroll.
     skip.addEventListener('click', () => { skipped.add(item.id); paintDrawer(item); reveal(false); });
     // Step to a question (or, one past the last, the result).
     function go(index) { step = Math.max(0, Math.min(index, many ? total : 0)); moved = true; paint(); reveal(); }
@@ -299,12 +305,13 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
       const target = step === total ? resultLine : rows[step].querySelector('.qhead'), top = many ? steps : target;
       target.focus({preventScroll: true}); centreStep();
       const y = top.getBoundingClientRect().top;
-      if (y < 0 || y > innerHeight / 2) jumpScroll(top, false);
+      if (y < 0 || y > innerHeight / 2) { tapGuardUntil = performance.now() + 400; jumpScroll(top, false); }
     }
     function paint() {
       const score = quizScore(quiz, state), gated = !state.recall[item.id]?.trim() && !score.answered && !skipped.has(item.id);
       gate.hidden = !gated; body.hidden = gated;
-      if (step === total && !score.answered) step = 0; // nothing answered (a reset elsewhere): no result to show
+      if (step === total && !score.answered && hadAnswers) step = 0; // answers reset elsewhere: back to question 1
+      hadAnswers = score.answered > 0;
       const scoreText = score.answered ? t('score', score) : t('questions', {count: score.total});
       if (scoreLabel.textContent !== scoreText) scoreLabel.textContent = scoreText;
       for (const painter of painters) painter();
@@ -320,6 +327,7 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
       if (resultLine.textContent !== line) resultLine.textContent = line;
       hint.hidden = !all; resume.hidden = all;
       if (!all) resume.textContent = t('resumeQuiz', {n: firstOpen() + 1});
+      if (widened) { widened = false; keepStep(); }
     }
     quizPainters.set(item.id, [...(quizPainters.get(item.id) || []), paint]);
   }

@@ -1160,13 +1160,36 @@ def quiz_stepper(browser):
     # Thirteen questions keep their steps in one row that scrolls sideways, the current step in view.
     long = page.locator('.item[data-id="long"]')
     long.locator(".closeout > summary").click(); long.locator(".quiz > summary").click()
-    long.locator(".gate button").click()
+    # The recall gate low on the screen: skipping it scrolls the steps up, so a quick second tap on what
+    # moved there (here Done, next) is ignored.
+    gate = long.locator(".gate button")
+    page.evaluate("y => scrollBy(0, y - innerHeight * 0.75)", gate.bounding_box()["y"])
+    gate.click()
+    expect(long.locator(".qhead").first).to_be_focused()
+    assert in_view(long.locator(".qsteps")), "the steps come up into view"
+    long.locator(".next1").click()
+    assert page.evaluate("window.readerPage.get().items.long") is None, "the second tap went through"
     page.wait_for_timeout(450)
-    long.locator(".qstep").nth(10).click()
+    steps = long.locator(".qstep")
+    steps.nth(10).click()
     current = long.locator('.qstep[aria-current="step"]')
     expect(current).to_have_text("11")
-    assert len({round(c.bounding_box()["y"]) for c in long.locator(".qstep").all()}) == 1, "steps wrap"
-    assert current.evaluate("c => { const r = c.getBoundingClientRect(), s = c.parentElement.getBoundingClientRect(); return r.left >= s.left && r.right <= s.right; }")
+    assert len({round(c.bounding_box()["y"]) for c in steps.all()}) == 1, "steps wrap"
+    whole = "c => { const r = c.getBoundingClientRect(), s = c.parentElement.getBoundingClientRect(); return r.left >= s.left - 0.5 && r.right <= s.right + 0.5; }"
+    assert current.evaluate(whole)
+    # Skipping every question still reaches the result.
+    page.wait_for_timeout(450)
+    steps.last.click(); page.wait_for_timeout(450)
+    long.locator(".qforward").click()
+    expect(long.locator(".qresult-line")).to_be_visible()
+    expect(long.locator(".qresult-line")).to_have_text("0 right · 0 of 13 answered")
+    expect(long.locator(".qresume")).to_have_text("Continue with question 1")
+    # Outcomes arriving from elsewhere widen the steps; the current one stays whole.
+    page.wait_for_timeout(450)
+    steps.last.click()
+    page.evaluate("p => { const s = p.get(), quiz = {...s.quiz}; for (let i = 10; i < 23; i++) quiz[`many/s${i}`] = 'a'; p.set({...s, quiz}); }", page.evaluate_handle("window.readerPage"))
+    expect(steps.last).to_have_text("13 ✓")
+    assert steps.last.evaluate(whole), "current step clipped"
     check_layout(page, 320)
     site.healthy()
     context.close()
