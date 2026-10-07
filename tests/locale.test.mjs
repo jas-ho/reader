@@ -27,7 +27,7 @@ test('German export retains source links and authored text without modifying sav
   const list = {id: 'test', title: 'Leseliste', sections: [{items: [{id: 'first', title: 'Ein Text', description: 'Absatz 2 lesen', parts: [{id: 'part', title: 'Teil', links: [{label: 'Quelle', url: 'https://example.org/part'}]}]}]}]};
   const state = emptyState(); state.items.first = 'done'; state.notes.first = 'Eigene Notiz'; state.freeform = 'Ein Gedanke';
   const before = JSON.stringify(state), output = buildExport(list, state, null, 'de');
-  for (const text of ['meine Lesenotizen', '[gelesen]', 'Leseauftrag', 'Absatz 2 lesen', 'Eigene Notiz', 'https://example.org/part', 'Warte auf meine Frage', 'niemals in Web-Suchanfragen', 'Freie Notizen']) assert.ok(output.includes(text), text);
+  for (const text of ['meine Lesenotizen', '[gelesen]', 'Notiz der Kuration', 'Absatz 2 lesen', 'Eigene Notiz', 'https://example.org/part', 'Warte auf meine Frage', 'niemals in Web-Suchanfragen', 'Freie Notizen']) assert.ok(output.includes(text), text);
   assert.equal(JSON.stringify(state), before);
   assert.match(buildExport(list, state), /my reading notes/);
 });

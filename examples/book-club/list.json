@@ -15,16 +15,17 @@
           "id": "imaginary-garden",
           "title": "The Imaginary Garden",
           "byline": "An invented book for this example",
-          "description": "Read chapters 1–3 in your own copy.\n\nChoose one passage to discuss; bring its page number.",
+          "description": "The narrator describes the garden wall in every chapter but never says who built it. Chapter 3 switches to the neighbour's view of the same wall; mark the passage you would bring to the group, with its page number.",
           "why": "Practice separating what the narrator observes from what they infer.",
-          "minutes": 45,
-          "effort": ["3 chapters"]
+          "scope": "chapters 1–3, in your own copy",
+          "minutes": 45
         },
         {
           "id": "looking-twice",
           "title": "Looking twice",
           "minutes": 20,
-          "description": "Compare the fictional essay with its fictional response. Replace both placeholder URLs with your own sources.",
+          "description": "A fictional essay and the response it provoked. Placeholder URLs: replace both with your own sources.",
+          "scope": "both pieces, essay first",
           "links": [
             { "label": "Essay (placeholder)", "url": "https://example.org/essay" },
             { "label": "Response (placeholder)", "url": "https://example.org/response" }
@@ -39,10 +40,11 @@
         {
           "id": "imaginary-garden-finish",
           "title": "Finish The Imaginary Garden",
-          "description": "Complete these chapters in your own copy. Mark each part as you finish it.",
+          "description": "The last two chapters return to the wall from the first meeting, this time from inside the garden. Tick each chapter as you finish it.",
+          "scope": "chapters 4 and 5, in your own copy",
           "parts": [
-            { "id": "garden-chapter-four", "title": "Chapter 4", "minutes": 25, "description": "Look for a change in the narrator's perspective." },
-            { "id": "garden-chapter-five", "title": "Chapter 5", "minutes": 20, "description": "Compare the ending with your first impression." }
+            { "id": "garden-chapter-four", "title": "Chapter 4", "minutes": 25, "description": "The narrator's perspective changes halfway through." },
+            { "id": "garden-chapter-five", "title": "Chapter 5", "minutes": 20, "description": "An ending to hold against your first impression." }
           ]
         }
       ]

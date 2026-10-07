@@ -31,7 +31,7 @@ Edit `examples/book-club/list.json` and refresh. Give a new list a new `id` befo
 }
 ```
 
-See the [field reference](docs/model.md) and [guide to changing themes and functionality](docs/extending.md).
+See the [field reference](docs/model.md), the [writing guide](docs/writing.md) and the [guide to changing themes and functionality](docs/extending.md).
 
 ## Validate changes
 

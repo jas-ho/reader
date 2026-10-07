@@ -109,7 +109,7 @@ export function renderItem(item, list, language = 'en') {
   if (metadata.childElementCount) heading.append(metadata);
   head.append(button('box', '✓', t('markDone', {title: item.title})), heading);
   const body = element('div', 'body'); body.id = `body/${item.id}`;
-  // The instruction first; the curator's reason after it, quieter.
+  // The curator's note first; the reason after it, quieter.
   if (item.description) body.append(element('p', 'what prose', item.description));
   if (item.why) body.append(element('p', 'why prose', item.why));
   if (item.scope) body.append(renderScope(item.scope, t));

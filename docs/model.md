@@ -1,6 +1,6 @@
 # Content and configuration
 
-A list is UTF-8 JSON. Run `node validate.mjs path/to/list.json` from the reader checkout before publishing. Errors name their location, such as `list.sections[0].items[1].title`. Unknown fields are rejected to catch typos. To add a field, follow [the extension recipe](extending.md).
+A list is UTF-8 JSON. For how to fill the fields well, see the [writing guide](writing.md). Run `node validate.mjs path/to/list.json` from the reader checkout before publishing. Errors name their location, such as `list.sections[0].items[1].title`. Unknown fields are rejected to catch typos. To add a field, follow [the extension recipe](extending.md).
 
 Text fields contain plain Unicode text. Use `\n\n` inside a string for paragraph breaks, which appear on screen and in exports. HTML and Markdown display as text. Put URLs in labeled link objects so they appear as links in both the page and export. Links are optional, including for physical books and private reading assignments.
 
@@ -21,8 +21,8 @@ Required properties have no default. Optional arrays default to empty; omitting 
 | Choice   | `id`, `text`                                  | None                                                                                               |
 
 - A list has at least one section, and each section at least one item. Ordering in arrays controls display order.
-- `description` on an item is the curator's note on the reading: what it is, what is interesting in it, what to watch for. `scope` says what to read, as a short fragment shown as "Read: …" right above the sources (`"in full"`, `"sections 2.3 and 4.2"`, `"the three passages below"`); keeping it out of the description lets descriptions open on the content instead of all starting with "Read …". `why` is the curator's rationale. `byline` can combine author and publication date as appropriate. Reading time goes in `minutes` (see [below](#reading-time)); `effort` is an array of other short notes on the workload, such as `["chapters 1–3"]`. Optional `priority` is `"essential"` or `"optional"`; it shows as a label before the byline and appears in exports. Omit it for no label. It is display-only and does not filter or reorder readings.
-- Links have descriptive labels and absolute HTTP/HTTPS URLs. The first item link is the main source; companions and alternatives follow. When a long or awkward source is the main link, put the most readable version first (for example the PDF of a dense web page, labelled "(PDF, easier on phones)"). A part's links belong to that part. Avoid a vague label such as “here” when the link will also appear in an export.
+- `description` on an item is the curator's note on the reading: what it is, what is interesting in it, what to watch for. `scope` says what to read, as a short fragment shown as "Read: …" right above the sources (`"in full"`, `"sections 2.3 and 4.2"`, `"the three passages below"`); keeping it out of the description lets descriptions open on the content instead of all starting with "Read …". `why` is the curator's rationale. `byline` can combine author and publication date as appropriate. Reading time goes in `minutes` (see [below](#reading-time)); `effort` is an array of short qualitative notes on the workload, such as `["dense legal text", "needs a free login"]`; what to read belongs in `scope`. Optional `priority` is `"essential"` or `"optional"`; it shows as a label before the byline and appears in exports. Omit it for no label. It is display-only and does not filter or reorder readings.
+- Links have descriptive labels and absolute HTTP/HTTPS URLs. The first item link is the main source; companions and alternatives follow. When a source exists in several forms, put the one that reads best on a phone first, after checking it on a phone: an HTML page with text-fragment jumps usually beats a PDF. A part's links belong to that part. Avoid a vague label such as “here” when the link will also appear in an export.
 - Parts are individually checkable portions of a reading. They have progress, while recall, notes and quizzes belong to the parent item.
 - An item can have zero, one or several quizzes. Each quiz has at least one question. Each question has 2–26 choices; `answer` is the correct choice's ID, not its position. Only single-choice questions are supported.
 - Quizzes ask for recall first and provide a skip button. Code exercises can be linked but are not executed or graded.
@@ -46,7 +46,7 @@ When the assignment names particular passages, add them as `jumps` on the link t
 }
 ```
 
-For web pages use a [text fragment](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment/Text_fragments): `#:~:text=` followed by a short, distinctive phrase copied from the rendered page, percent-encoded (encode `-` as `%2D`). For PDFs use `#page=N` on the PDF URL. Check every jump in a browser before publishing: the phrase must occur exactly once, near the start of the part you mean, and fragments break silently when a page changes. Browsers without text-fragment support open the page at the top. Label jumps by what the reader finds there, not by the mechanism. Jumps export as indented lines under their link.
+For web pages use a [text fragment](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment/Text_fragments): `#:~:text=` followed by a short, distinctive phrase copied from the rendered page, percent-encoded (encode `-` as `%2D`). For PDFs use `#page=N` on the PDF URL; desktop browsers honour it, but many phones open PDFs in a viewer or download them and ignore the page, so prefer an HTML target where one exists. Check every jump in a browser before publishing: the phrase must occur once (or add prefix or suffix context), near the start of the part you mean, and fragments break silently when a page changes. Browsers without text-fragment support open the page at the top. Label jumps by what the reader finds there, not by the mechanism. Jumps export as indented lines under their link.
 
 ### Audio versions
 
@@ -78,7 +78,7 @@ Use lowercase slugs beginning with a lowercase letter or digit, followed by lowe
 
 | ID            | Must be unique within                                           |
 | ------------- | --------------------------------------------------------------- |
-| List          | Your lists on the same origin; choose a new ID for a new domain |
+| List          | Your lists on the same website (origin); give each new list its own ID |
 | Section       | The list                                                        |
 | Item and part | The entire list, across both types                              |
 | Quiz          | The entire list                                                 |
