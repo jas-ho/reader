@@ -162,7 +162,6 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
   display:flex;align-items:baseline;gap:.6rem;width:100%;text-align:left;font-size:.92rem;line-height:1.4;position:relative;
   background:transparent;color:var(--ink);border:1px solid var(--rule);border-radius:var(--radius);
   margin:0 0 .45rem;padding:.6rem 2.2rem .6rem .65rem;min-height:44px;counter-increment:choice;
-  scroll-margin-bottom:3.75rem; /* a focused choice stays clear of the sticky Previous/Next row */
   -webkit-appearance:none;appearance:none;transition:background .12s,border-color .12s
 }
 .opt::before{content:counter(choice,upper-alpha);content:counter(choice,upper-alpha) / "";flex:none;min-width:1.1em;font-size:.8rem;font-weight:700;color:var(--muted)}
@@ -179,6 +178,8 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
 .q.right .rat{border-left-color:var(--correct);background:var(--correct-soft)}
 .rat:empty{padding:0;margin:0;border:0;background:none}
 /* Previous and Next stay reachable above the bar while a long question or explanation runs below it. */
+/* Anything in the quiz brought into view from below stays clear of that row (it can ride up to the steps). */
+.qbody button,.qhead{scroll-margin-bottom:3.75rem}
 .qnav{display:flex;align-items:center;gap:.5rem;margin-top:.4rem;padding:.3rem 0;position:sticky;bottom:var(--bar-h,64px);z-index:1;background:var(--ground)}
 .qforward{margin-left:auto}
 /* Once answered, Next is outlined in the accent: the drawer's Done, next stays the one filled button. */

@@ -1067,8 +1067,12 @@ def quiz_stepper(browser):
     page.evaluate("scrollTo(0, 0)")
     last = visible().locator(".opt").last
     last.evaluate("o => o.scrollIntoView({block: 'nearest'})")
-    nav_top = quiz.locator(".qnav").evaluate("n => n.getBoundingClientRect().top")
-    assert last.evaluate("o => o.getBoundingClientRect().bottom") <= nav_top + 0.5, "focused choice under the Next row"
+    nav_top = lambda: quiz.locator(".qnav").evaluate("n => n.getBoundingClientRect().top")
+    assert last.evaluate("o => o.getBoundingClientRect().bottom") <= nav_top() + 0.5, "choice under the Next row"
+    # The same for a step, with the quiz entering from below (the row can ride up to the steps).
+    page.evaluate("y => scrollBy(0, y - innerHeight - 20)", quiz.locator(".qstep").first.evaluate("c => c.getBoundingClientRect().top"))
+    quiz.locator(".qstep").first.evaluate("c => c.scrollIntoView({block: 'nearest'})")
+    assert quiz.locator(".qstep").first.evaluate("c => c.getBoundingClientRect().bottom") <= nav_top() + 0.5, "step under the Next row"
     steps = quiz.locator(".qstep")
     expect(steps).to_have_count(5)
     expect(steps.first).to_have_attribute("aria-current", "step")
@@ -1091,8 +1095,9 @@ def quiz_stepper(browser):
     # The tall question runs below the screen; Next stays reachable above the bar without scrolling.
     box = forward.bounding_box()
     bar_top = page.locator("#bar").evaluate("b => b.getBoundingClientRect().top")
+    assert visible().evaluate("q => q.getBoundingClientRect().bottom") > bar_top, "precondition: the question runs below the bar"
     assert box["y"] >= 0 and box["y"] + box["height"] <= bar_top, (box, bar_top)
-    assert page.evaluate("([x, y]) => document.elementFromPoint(x, y)?.closest('.qforward') !== null", [box["x"] + box["width"] / 2, box["y"] + box["height"] / 2])
+    assert page.evaluate("([x, y]) => Boolean(document.elementFromPoint(x, y)?.closest('.qforward'))", [box["x"] + box["width"] / 2, box["y"] + box["height"] / 2])
 
     # A quick second tap after Next must not answer the next question, which moved under the finger.
     forward.scroll_into_view_if_needed()
