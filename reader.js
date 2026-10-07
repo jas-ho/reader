@@ -314,8 +314,8 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
   function renderProgress() {
     const open = items.filter(unfinished);
     const countText = open.length ? t('left', {count: open.length}) : t('allDone');
-    if (count.textContent !== countText) {
-      count.textContent = $('#contentsCount').textContent = $('#progress').textContent = countText; // #progress announces it
+    if ($('#countText').textContent !== countText) {
+      $('#countText').textContent = $('#contentsCount').textContent = $('#progress').textContent = countText; // #progress announces it
       count.setAttribute('aria-label', t('contentsLabel', {count: countText}));
     }
     jump.hidden = !open.length;

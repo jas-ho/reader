@@ -176,12 +176,14 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
   padding:.4rem 1.15rem;
 }
 @media(min-width:700px){ .barrow{padding:.4rem 2rem} }
-.bar .count{background:transparent;border:0;color:var(--ink);font-weight:600;font-size:1rem;white-space:nowrap;min-height:44px;padding:0 .4rem 0 0;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:.25em}
-.bar .count:hover{text-decoration-color:var(--ink)}
+/* The count opens the contents; the list icon says so. */
+.bar .count{display:inline-flex;align-items:center;gap:.4rem;background:transparent;border:0;color:var(--ink);font-weight:600;font-size:1rem;white-space:nowrap;min-height:44px;padding:0 .4rem 0 0}
+.bar .count svg{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.bar .count:hover{color:var(--accent)}
 .bar .hint{font-size:.88rem;flex:0 0 auto;display:flex;margin-right:auto}
 .bar .hint .jump{white-space:nowrap;background:transparent;border:1px solid var(--ink);border-radius:var(--radius);color:var(--ink);min-height:44px;min-width:44px;padding:0 .8rem}
 .bar .hint .jump:hover{border-color:var(--accent);color:var(--accent)}
-#syncMount{white-space:nowrap}
+#syncMount > * > button{white-space:nowrap} /* the sync pill only; its panel's text and buttons wrap */
 #exportBtn{font-size:.85rem;padding:.4rem .2rem}
 .bar .tx2{display:none}
 @media(min-width:700px){ .bar .tx2{display:inline} }
