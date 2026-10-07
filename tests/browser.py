@@ -1061,6 +1061,14 @@ def quiz_stepper(browser):
     quiz.locator(".gate button").click()
     expect(visible()).to_have_count(1)
     expect(visible().locator(".qcount")).to_have_text("Question 1 of 5")
+    # The first question is taller than the screen. Bringing a lower choice into view from above (as focus
+    # does in browsers that scroll to the nearest edge) keeps it clear of the sticky Previous/Next row.
+    assert visible().evaluate("q => q.getBoundingClientRect().height > innerHeight"), "precondition: a tall question"
+    page.evaluate("scrollTo(0, 0)")
+    last = visible().locator(".opt").last
+    last.evaluate("o => o.scrollIntoView({block: 'nearest'})")
+    nav_top = quiz.locator(".qnav").evaluate("n => n.getBoundingClientRect().top")
+    assert last.evaluate("o => o.getBoundingClientRect().bottom") <= nav_top + 0.5, "focused choice under the Next row"
     steps = quiz.locator(".qstep")
     expect(steps).to_have_count(5)
     expect(steps.first).to_have_attribute("aria-current", "step")
@@ -1081,7 +1089,10 @@ def quiz_stepper(browser):
     expect(forward).to_have_text("Next question")
     expect(forward).to_have_class(re.compile("primary"))
     # The tall question runs below the screen; Next stays reachable above the bar without scrolling.
-    assert in_view(forward), forward.bounding_box()
+    box = forward.bounding_box()
+    bar_top = page.locator("#bar").evaluate("b => b.getBoundingClientRect().top")
+    assert box["y"] >= 0 and box["y"] + box["height"] <= bar_top, (box, bar_top)
+    assert page.evaluate("([x, y]) => document.elementFromPoint(x, y)?.closest('.qforward') !== null", [box["x"] + box["width"] / 2, box["y"] + box["height"] / 2])
 
     # A quick second tap after Next must not answer the next question, which moved under the finger.
     forward.scroll_into_view_if_needed()
