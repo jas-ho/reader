@@ -24,7 +24,7 @@ Everything a theme expresses comes from these tokens; `styles.css` keeps only st
 | `--font-body`, `--font-heading` | Reading text and controls; headings |
 | `--radius` | Corners of checkboxes, buttons, fields, dialogs and the focus ring (`0` for square) |
 | `--shadow`, `--bar-shadow`, `--backdrop` | Dialog shadow; bottom bar shadow; dialog backdrop |
-| `--jasho-sync-*` | Colours, font, corners and shadow handed to the optional sync widget; mapped from the tokens above |
+| `--jasho-sync-*` | Colours, font, corners, shadow and backdrop handed to the optional sync widget, mapped from the tokens above; set on `:root`, because the widget's panel is a dialog outside the bar |
 
 Set semantic and derived tokens on `:root` like the palette; they resolve there. Quiz results also show a ✓ or ✗ mark, so they never depend on colour alone.
 

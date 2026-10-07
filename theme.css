@@ -75,4 +75,5 @@
   --jasho-sync-font: var(--font-body);
   --jasho-sync-radius: var(--radius);
   --jasho-sync-shadow: var(--shadow);
+  --jasho-sync-backdrop: var(--backdrop);
 }
