@@ -1244,6 +1244,7 @@ def navigation(browser):
     card(1).locator(".closeout > summary").click()
     card(1).locator(".quiz > summary").click()
     card(1).locator(".gate button").click()
+    page.wait_for_timeout(450)  # the gate sat low: skipping it scrolled the quiz up, behind a tap guard
     for _ in range(3):  # one question at a time, past the tap guard after each step
         card(1).locator(".q:visible .opt").first.click()
         card(1).locator(".qforward").click()
