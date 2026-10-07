@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   allItems,
   itemMinutes,
+  pdfPage,
   totalMinutes,
   validateCompatibility,
   validateConfig,
@@ -10,7 +11,7 @@ import {
 } from '../content.js';
 import { createCodec, emptyState, flatten, quizKey, readState, unflatten } from '../state.js';
 import { buildExport } from '../export.js';
-import { formatMinutes } from '../locale.js';
+import { formatMinutes, translator } from '../locale.js';
 import { summarise } from '../render.js';
 
 // Synthetic examples only. The real curriculum and migration map belong to
@@ -417,6 +418,16 @@ test('jumps into a source validate and export under their link', () => {
   assert.deepEqual(validateList(list), []);
   const markdown = buildExport(list, emptyState(), item.id);
   assert.ok(markdown.includes(`- ${item.links[0].label}: ${item.links[0].url}\n  - Section 2: Method: https://example.org/guide#:~:text=Method\n  - Appendix, page 12: https://example.org/guide.pdf#page=12`), markdown);
+});
+
+test('a #page link names its PDF page; nothing else does', () => {
+  assert.equal(pdfPage('https://example.org/a.pdf#page=12'), 12);
+  assert.equal(pdfPage('https://example.org/a.pdf#zoom=100&page=6'), 6);
+  for (const url of ['https://example.org/a.pdf', 'https://example.org/a.pdf#page=0', 'https://example.org/a.pdf#page=abc',
+    'https://example.org/a#:~:text=page=3', 'https://example.org/a.pdf#page=6x', 'https://example.org/a.pdf?page=4']) {
+    assert.equal(pdfPage(url), null, url);
+  }
+  assert.equal(translator('de')('pdfPage', {page: 6}), 'PDF-Seite 6');
 });
 
 test('export works for a linkless book and waits for the reader question', () => {

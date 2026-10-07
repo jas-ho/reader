@@ -20,7 +20,7 @@
               "url": "https://example.org/guide",
               "jumps": [
                 { "label": "The worked example (placeholder)", "url": "https://example.org/guide#:~:text=worked%20example" },
-                { "label": "Printable checklist, page 4 (placeholder)", "url": "https://example.org/guide.pdf#page=4" }
+                { "label": "Printable checklist (placeholder)", "url": "https://example.org/guide.pdf#page=4" }
               ]
             },
             { "label": "Video companion (placeholder)", "url": "https://example.org/video" }

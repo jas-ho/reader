@@ -46,7 +46,7 @@ When the assignment names particular passages, add them as `jumps` on the link t
 }
 ```
 
-For web pages use a [text fragment](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment/Text_fragments): `#:~:text=` followed by a short, distinctive phrase copied from the rendered page, percent-encoded (`-` as `%2D`, `,` as `%2C`). The full form is `#:~:text=[prefix-,]start[,end][,-suffix]`: when the phrase occurs more than once, add a few words before it as `prefix-,`; `start,end` selects a range. For PDFs use `#page=N` on the PDF URL; desktop browsers honour it, but many phones open PDFs in a viewer or download them and ignore the page. Browsers without text-fragment support open the page at the top. Jumps export as indented lines under their link.
+For web pages use a [text fragment](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment/Text_fragments): `#:~:text=` followed by a short, distinctive phrase copied from the rendered page, percent-encoded (`-` as `%2D`, `,` as `%2C`). The full form is `#:~:text=[prefix-,]start[,end][,-suffix]`: when the phrase occurs more than once, add a few words before it as `prefix-,`; `start,end` selects a range. For PDFs use `#page=N` on the PDF URL, where N counts the file's pages from 1 (not the printed page numbers); desktop browsers honour it, but many phones open PDFs in a viewer or download them and ignore the page, so the reader shows "PDF page N" after such a link. Browsers without text-fragment support open the page at the top. Jumps export as indented lines under their link.
 
 ### Audio versions
 

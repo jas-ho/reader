@@ -6,6 +6,13 @@ export const PRIORITIES = ['essential', 'optional'];
 export const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 export const allItems = list => list.sections.flatMap(section => section.items);
 export const quizKey = (quiz, question) => `${quiz.id}/${question.id}`;
+// The page a `#page=N` link opens on: the PDF's own page index (1 = first page), not its printed
+// page label. Phones often ignore the fragment, so the reader shows the number. Null otherwise.
+export function pdfPage(url) {
+  const hash = String(url).split('#')[1];
+  const page = hash?.split('&').find(param => param.startsWith('page='))?.slice(5);
+  return /^[1-9]\d{0,4}$/.test(page ?? '') ? Number(page) : null;
+}
 // Reading time in minutes: the item's own estimate, else the sum of its parts when every part
 // has one; null when unknown. A total is null as soon as one reading in it is unknown.
 export function itemMinutes(item) {

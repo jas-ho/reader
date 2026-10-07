@@ -912,9 +912,19 @@ def parts_and_deep_links(browser):
     data = course()
     data["sections"][0]["items"][0]["parts"].append({"id": "second-exercise", "title": "A second exercise"})
     data["sections"][0]["items"][0]["scope"] = "paragraphs 1 to 3"
+    data["sections"][0]["items"][0]["links"][0]["jumps"] = [
+        {"label": "A long jump label that wraps onto a second line on a narrow phone screen", "url": "https://example.org/r.pdf#page=6&zoom=100"},
+        {"label": "Page zero is no page", "url": "https://example.org/r.pdf#page=0"},
+        {"label": "A quoted line", "url": "https://example.org/reading#:~:text=quoted"},
+    ]
     site = Site(page, data)
     site.open()
     card = page.locator('.item[data-id="first-reading"]')
+    # Phones often ignore #page, so a PDF page jump shows its page number, outside the link.
+    expect(card.locator(".jumps .page-hint")).to_have_count(1)
+    expect(card.locator(".jumps li").first.locator(".page-hint")).to_have_text(" · PDF page 6")
+    expect(card.locator(".jumps a").first).to_have_text("A long jump label that wraps onto a second line on a narrow phone screen")
+    check_layout(page, 390)
     # What to read sits right above the sources it refers to.
     scope = card.locator(".body > .scope")
     expect(scope).to_have_text("Read: paragraphs 1 to 3")

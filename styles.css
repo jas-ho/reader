@@ -224,6 +224,7 @@ h1,h2,h3,.metadata,.toc .name,.summary-text{overflow-wrap:anywhere}
 .jumps{list-style:none;margin:.15rem 0 .35rem;padding:0 0 0 1rem;font-size:.86rem;line-height:1.45}
 .jumps li{margin:.4rem 0;padding-left:1.25em;text-indent:-1.25em}
 .jumps a{padding:.3rem 0} /* a taller tap target without breaking the line */
+.page-hint{color:var(--muted)}
 .jumps li::before{content:"\21B3\00a0";content:"\21B3\00a0" / "";color:var(--muted)}
 
 /* audio */

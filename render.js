@@ -1,5 +1,5 @@
 import {translator, formatMinutes} from './locale.js';
-import {allItems, itemMinutes, totalMinutes} from './content.js';
+import {allItems, itemMinutes, pdfPage, totalMinutes} from './content.js';
 
 // Plain DOM construction: authored strings are text, never executable HTML.
 export function element(tag, className, text) {
@@ -13,13 +13,14 @@ export function button(className, text, label) {
   if (label) node.setAttribute('aria-label', label);
   return node;
 }
-function renderLinks(links = [], className = 'source-links') {
+function renderLinks(links, t, className = 'source-links') {
   const ul = element('ul', className);
   for (const link of links) {
-    const li = element('li'), a = element('a', '', link.label);
+    const li = element('li'), a = element('a', '', link.label), page = pdfPage(link.url);
     a.href = link.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
     li.append(a);
-    if (link.jumps?.length) li.append(renderLinks(link.jumps, 'jumps')); // places inside this source
+    if (page) li.append(element('span', 'page-hint', ` · ${t('pdfPage', {page})}`)); // phones often ignore #page
+    if (link.jumps?.length) li.append(renderLinks(link.jumps, t, 'jumps')); // places inside this source
     ul.append(li);
   }
   return ul;
@@ -113,7 +114,7 @@ export function renderItem(item, list, language = 'en') {
   if (item.description) body.append(element('p', 'what prose', item.description));
   if (item.why) body.append(element('p', 'why prose', item.why));
   if (item.scope) body.append(renderScope(item.scope, t));
-  if (item.links?.length) body.append(renderLinks(item.links));
+  if (item.links?.length) body.append(renderLinks(item.links, t));
   if (item.audio?.length) body.append(renderAudio(item.audio, t, item.id));
   if (item.parts?.length) {
     const ul = element('ul', 'subs');
@@ -123,7 +124,7 @@ export function renderItem(item, list, language = 'en') {
       if (part.minutes !== undefined) text.append(element('span', 'minutes', ` · ${formatMinutes(part.minutes, language)}`));
       if (part.description) text.append(element('p', 'prose', part.description));
       if (part.scope) text.append(renderScope(part.scope, t));
-      if (part.links?.length) text.append(renderLinks(part.links));
+      if (part.links?.length) text.append(renderLinks(part.links, t));
       if (part.audio?.length) text.append(renderAudio(part.audio, t, part.id));
       li.append(button('box', '✓', t('markDone', {title: part.title})), text); ul.append(li);
     }
