@@ -14,7 +14,7 @@ html{scroll-padding-bottom:calc(var(--bar-h,64px) + 1rem)}
 
 a{color:var(--accent);text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:.16em}
 a:hover{text-decoration-color:var(--accent)}
-a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,input:focus-visible,h1:focus-visible,h2:focus-visible,.head h3:focus-visible{
+a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,input:focus-visible,h1:focus-visible,h2:focus-visible,.head h3:focus-visible,.qhead:focus-visible,.qresult-line:focus-visible{
   outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--radius)
 }
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
@@ -22,11 +22,11 @@ a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visibl
 /* Controls. Quiet: text only, muted. Primary: the one filled button in a row. Targets are at least 44px,
    except links and the gate's link-styled button inside running text. */
 button{font:inherit;cursor:pointer}
-.drop,.show,.close1,.copy1,.qreset,.audio-start,.audio-details,#exportBtn,.contents-head button,.handoff .tools button{
+.drop,.show,.close1,.copy1,.qreset,.qback,.qforward,.audio-start,.audio-details,#exportBtn,.contents-head button,.handoff .tools button{
   background:transparent;border:0;color:var(--muted);font-size:.88rem;
   min-height:44px;min-width:44px;padding:.4rem .5rem;display:inline-flex;align-items:center;justify-content:center;gap:.4rem
 }
-.drop:hover,.show:hover,.close1:hover,.copy1:hover,.qreset:hover,.audio-start:hover,.audio-details:hover,#exportBtn:hover,.contents-head button:hover,.handoff .tools button:hover{color:var(--accent)}
+.drop:hover,.show:hover,.close1:hover,.copy1:hover,.qreset:hover,.qback:hover,.qforward:hover,.audio-start:hover,.audio-details:hover,#exportBtn:hover,.contents-head button:hover,.handoff .tools button:hover{color:var(--accent)}
 .next1,.handoff .tools .primary{
   background:var(--ink);color:var(--ground);border:1px solid var(--ink);border-radius:var(--radius);
   font-size:.88rem;font-weight:600;min-height:44px;padding:.4rem .9rem
@@ -139,25 +139,59 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
 .quiz > summary .qscore{color:var(--muted);font-weight:normal;font-size:.84rem}
 .gate{color:var(--muted);font-size:.88rem;padding:0 0 .6rem}
 .gate .qreset{display:inline;min-height:0;min-width:0;padding:0;font-size:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:.16em}
-.q{padding:.6rem 0 .4rem}
-.q .qtext{font-size:.95rem;line-height:1.45;margin:0 0 .3rem;font-weight:500}
-/* Choices are rows; after answering, the chosen and the right one are tinted and marked. */
-.opt{
-  display:block;width:100%;text-align:left;font-size:.9rem;line-height:1.4;position:relative;
-  background:transparent;color:var(--ink);border:0;border-bottom:1px solid var(--rule);border-radius:0;
-  padding:.65rem 2rem .65rem .4rem;min-height:44px;
-  -webkit-appearance:none;appearance:none;transition:background .12s
+/* One question at a time: numbered steps (with the outcome once answered), the question, its choices,
+   Previous and Next; past the last question, the result. */
+/* One row however many questions; it scrolls sideways and keeps the current step in view. */
+.qsteps{display:flex;gap:.35rem;margin:.1rem 0 .5rem;scroll-margin-top:1rem;position:relative;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+.qsteps::-webkit-scrollbar{display:none}
+.qstep{
+  flex:none;min-width:44px;min-height:44px;padding:0 .45rem;font-size:.85rem;font-variant-numeric:tabular-nums;
+  background:transparent;color:var(--muted);border:1px solid var(--rule);border-radius:var(--radius)
 }
-.opt:hover:not([aria-disabled="true"]){background:var(--accent-soft)}
+.qstep:hover{color:var(--accent);border-color:var(--accent)}
+.qstep.right{color:var(--correct);background:var(--correct-soft)}
+.qstep.wrong{color:var(--wrong);background:var(--wrong-soft)}
+.qstep[aria-current="step"]{border-color:var(--accent);color:var(--ink);font-weight:700}
+.q{padding:.2rem 0 .2rem;counter-reset:choice}
+.qhead{scroll-margin-top:1rem}
+.qcount{font-size:.78rem;color:var(--muted);margin:0 0 .15rem;letter-spacing:.02em}
+.q .qtext{font-size:1.02rem;line-height:1.45;margin:0 0 .6rem;font-weight:600}
+/* Choices are tiles lettered A, B, C… (decoration: their names stay the choice text); after answering,
+   the chosen and the right one are tinted and marked. */
+.opt{
+  display:flex;align-items:baseline;gap:.6rem;width:100%;text-align:left;font-size:.92rem;line-height:1.4;position:relative;
+  background:transparent;color:var(--ink);border:1px solid var(--rule);border-radius:var(--radius);
+  margin:0 0 .45rem;padding:.6rem 2.2rem .6rem .65rem;min-height:44px;counter-increment:choice;
+  -webkit-appearance:none;appearance:none;transition:background .12s,border-color .12s
+}
+.opt::before{content:counter(choice,upper-alpha);content:counter(choice,upper-alpha) / "";flex:none;min-width:1.1em;font-size:.8rem;font-weight:700;color:var(--muted)}
+@media(hover:hover){ .opt:hover:not([aria-disabled="true"]){background:var(--accent-soft);border-color:var(--accent)} } /* a tapped tile must not look chosen */
 .opt[aria-disabled="true"]{cursor:default}
-.q.answered .opt.correct{background:var(--correct-soft)}
-.q.answered .opt.wrong{background:var(--wrong-soft)}
+.q.answered .opt.correct{background:var(--correct-soft);border-color:var(--correct)}
+.q.answered .opt.wrong{background:var(--wrong-soft);border-color:var(--wrong)}
 /* Marks carry the result without colour; the status text below announces it, so they stay silent. */
-.q.answered .opt.correct::after,.q.answered .opt.wrong::after{position:absolute;right:.6rem;top:.65rem;font-weight:700}
+.q.answered .opt.correct::after,.q.answered .opt.wrong::after{position:absolute;right:.7rem;top:.6rem;font-weight:700}
 .q.answered .opt.correct::after{content:"\2713";content:"\2713" / "";color:var(--correct)}
 .q.answered .opt.wrong::after{content:"\2717";content:"\2717" / "";color:var(--wrong)}
-.rat{font-size:.86rem;line-height:1.5;color:var(--muted);margin:.5rem 0 .2rem;display:none}
-.q.answered .rat{display:block}
+/* The outcome, framed in its colour under the choices; the region stays in place, empty, until answered. */
+.rat{font-size:.88rem;line-height:1.5;margin:.25rem 0 0;padding:.6rem .75rem;border-left:3px solid var(--wrong);background:var(--wrong-soft);border-radius:var(--radius)}
+.q.right .rat{border-left-color:var(--correct);background:var(--correct-soft)}
+.rat:empty{padding:0;margin:0;border:0;background:none}
+.qnav{display:flex;align-items:center;gap:.5rem;margin-top:.7rem}
+.qforward{margin-left:auto}
+/* Once answered, Next is outlined in the accent: the drawer's Done, next stays the one filled button. */
+.qforward.primary,.qresume{
+  color:var(--accent);border:1px solid var(--accent);border-radius:var(--radius);font-weight:600;
+  font-size:.88rem;min-height:44px;padding:.4rem .9rem;background:transparent
+}
+.qforward.primary:hover,.qresume:hover{background:var(--accent-soft)}
+.rat strong{font-weight:700}
+.qback::before{content:"\2039";content:"\2039" / "";font-size:1.2rem;line-height:1}
+.qforward::after{content:"\203A";content:"\203A" / "";font-size:1.2rem;line-height:1}
+.qresult{padding:.2rem 0}
+.qresult-line{font-family:var(--font-heading);font-size:1.3rem;font-weight:600;margin:.2rem 0 .3rem;scroll-margin-top:1rem}
+.qhint{color:var(--muted);font-size:.86rem;margin:0 0 .4rem}
+.qbody > .qreset{margin-top:.5rem}
 
 /* freeform */
 .pad{border-top:1px solid var(--rule);padding-top:1.1rem;margin:0 0 2rem}

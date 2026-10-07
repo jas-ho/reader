@@ -13,6 +13,7 @@ import argparse
 import copy
 import io
 import mimetypes
+import re
 import wave
 from pathlib import Path
 from urllib.parse import urlparse
@@ -529,10 +530,12 @@ def accessibility_regressions(browser):
     first.get_by_role("button", name="Reset this quiz", exact=True).click()
     expect(first.locator(".qbody")).to_be_hidden()
     expect(first.get_by_role("button", name="show the quiz without it.", exact=True)).to_be_focused()
+    page.wait_for_timeout(450)  # the quiz folded under the finger: a quick second tap is ignored
     second.locator("summary").click()
     expect(second.locator(".qbody")).to_be_hidden()
     first.get_by_role("button", name="show the quiz without it.", exact=True).click()
-    expect(first.locator(".opt").first).to_be_focused()
+    # Skipping lands on the question (its number and prompt), not on a choice.
+    expect(first.locator(".qhead").first).to_be_focused()
     expect(first.locator(".qbody")).to_be_visible()
     expect(second.locator(".qbody")).to_be_visible()
     first.locator('[data-choice="finite"]').first.click()
@@ -583,8 +586,10 @@ def german_reader(browser, screenshots):
     card.locator(".notetext").fill("Eine deutsche Notiz")
     quiz = card.locator(".quiz").first
     quiz.locator("summary").click()
+    expect(quiz.locator(".q:visible .qcount")).to_have_text("Frage 1 von 2")
     quiz.locator('[data-choice="finite"]').first.click()
     expect(quiz.locator(".rat").first).to_contain_text("Richtig.")
+    expect(quiz.locator(".qforward")).to_have_text("Nächste Frage")
     expect(quiz.locator(".qscore")).to_have_text("1/1 richtig")
     card.locator(".notetext").blur()
     page.reload()
@@ -815,10 +820,11 @@ def contents_and_drawer(browser):
         expect(card(1).locator("textarea.notetext")).to_have_attribute("placeholder", "Eine Aussage, eine Verbindung, eine Frage oder ein offener Punkt." if de else "A claim, a connection, a question, or a loose end.")
         card(1).locator("textarea.recall").fill("x")
         expect(summary).to_have_text("›Erinnerung ✓ · Notiz · Quiz" if de else "›Recall ✓ · Note · Quiz")
-        # Questions group their choices; choices carry no letters.
+        # Questions group their choices; their letters are decoration, not part of the choice's name.
         card(1).locator(".quiz > summary").click()
         group = card(1).get_by_role("group", name="Question 0?")
         expect(group.locator(".opt").first).to_have_text("Answer A")
+        expect(group.get_by_role("button", name="Answer A", exact=True)).to_be_visible()
         # One end row: clipboard, Close, Done next; all reachable and fitting at 320px.
         exits = card(1).locator(".exits")
         copy = exits.get_by_role("button", name="Im Chatbot verwenden" if de else "Use in your chatbot")
@@ -993,8 +999,11 @@ def quiz_result_colours(browser):
             card.locator(".gate button").click()
             questions = card.locator(".q")
             questions.nth(0).locator(".opt").filter(has_text="An infinite set").click()  # wrong
+            card.locator(".qforward").click()
+            page.wait_for_timeout(450)  # past the tap guard after stepping
             questions.nth(1).locator(".opt").filter(has_text="The empty set").click()  # right
-            page.wait_for_timeout(300)  # let the background transition settle before reading colours
+            card.locator(".qstep").first.click()  # back to the first question to read its colours
+            page.wait_for_timeout(450)  # also lets the background transition settle before reading colours
             style = lambda loc, prop, pseudo="null": loc.evaluate(
                 f"(el, p) => getComputedStyle(el, {pseudo}).getPropertyValue(p)", prop
             )
@@ -1019,6 +1028,148 @@ def quiz_result_colours(browser):
             check_layout(page, 320)
             site.healthy()
             context.close()
+
+
+def stepper_list():
+    """One reading with a five-question quiz (a tall first question) and one with a single question."""
+    tall = " ".join(["A long choice that wraps over several lines on a phone."] * 6)
+    question = lambda i, text="Short": {"id": f"s{i}", "prompt": f"Question {i}?", "choices": [
+        {"id": "a", "text": f"{text} A{i}"}, {"id": "b", "text": f"{text} B{i}"}], "answer": "a",
+        "explanation": f"Because of {i}."}
+    return {"schemaVersion": 1, "id": "stepper-test", "title": "Stepper test", "sections": [
+        {"id": "one", "title": "One", "items": [
+            {"id": "five", "title": "Five questions", "quizzes": [{"id": "steps", "title": "Check", "questions": [
+                question(1, tall), *[question(i) for i in range(2, 6)]]}]},
+            {"id": "single", "title": "One question", "quizzes": [{"id": "only", "title": "Check", "questions": [question(9)]}]},
+            {"id": "long", "title": "Thirteen questions", "quizzes": [{"id": "many", "title": "Check", "questions": [
+                question(i) for i in range(10, 23)]}]}]}]}
+
+
+def quiz_stepper(browser):
+    """One question at a time: steps, Previous/Next, a guarded second tap, the result, remote changes, reload."""
+    context = browser.new_context(viewport={"width": 320, "height": 640})
+    page = context.new_page()
+    site = Site(page, stepper_list())
+    site.open()
+    card = page.locator('.item[data-id="five"]')
+    quiz = card.locator(".quiz")
+    answers = lambda: page.evaluate("Object.fromEntries(Object.entries(window.readerPage.get().quiz).filter(([k]) => k.startsWith('steps/')))")
+    visible = lambda: quiz.locator(".q:visible")
+    in_view = lambda loc: loc.evaluate("el => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight - 60; }")
+    card.locator(".closeout > summary").click()
+    quiz.locator("summary").click()
+    quiz.locator(".gate button").click()
+    expect(visible()).to_have_count(1)
+    expect(visible().locator(".qcount")).to_have_text("Question 1 of 5")
+    steps = quiz.locator(".qstep")
+    expect(steps).to_have_count(5)
+    expect(steps.first).to_have_attribute("aria-current", "step")
+    expect(steps.first).to_have_attribute("aria-label", "Question 1: not answered")
+    for chip in steps.all():
+        box = chip.bounding_box(); assert box["height"] >= 44 and box["width"] >= 44, box
+    back, forward = quiz.locator(".qback"), quiz.locator(".qforward")
+    expect(back).to_be_hidden()
+    expect(forward).to_have_text("Skip question")
+    # The outcome's status region is in place before answering, empty.
+    expect(visible().locator(".rat")).to_have_text("")
+    expect(visible().locator(".rat")).to_have_attribute("role", "status")
+
+    visible().get_by_role("button", name=re.compile("A1$")).click()
+    expect(visible().locator(".rat")).to_have_text("Correct. Because of 1.")
+    expect(steps.first).to_have_text("1 ✓")
+    expect(steps.first).to_have_attribute("aria-label", "Question 1: right")
+    expect(forward).to_have_text("Next question")
+    expect(forward).to_have_class(re.compile("primary"))
+
+    # A quick second tap after Next must not answer the next question, which moved under the finger.
+    forward.scroll_into_view_if_needed()
+    box = forward.bounding_box()
+    x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+    page.mouse.click(x, y)
+    head = quiz.locator(".q:visible .qhead")
+    expect(head).to_be_focused()
+    expect(head.locator(".qcount")).to_have_text("Question 2 of 5")
+    page.mouse.click(x, y)
+    assert answers() == {"steps/s1": "a"}, answers()
+    assert in_view(head), "the new question starts on screen"
+    page.wait_for_timeout(450)
+
+    # Previous and the steps move without answering anything.
+    back.click(); expect(head.locator(".qcount")).to_have_text("Question 1 of 5")
+    page.wait_for_timeout(450)
+    steps.nth(3).click(); expect(head.locator(".qcount")).to_have_text("Question 4 of 5")
+    expect(steps.nth(3)).to_have_attribute("aria-current", "step")
+    expect(steps.first).not_to_have_attribute("aria-current", "step")
+    assert answers() == {"steps/s1": "a"}
+    page.wait_for_timeout(450)
+    visible().get_by_role("button", name="Short B4", exact=True).click()  # wrong
+    expect(visible().locator(".rat")).to_have_text("Incorrect. Correct answer: Short A4. Because of 4.")
+    expect(steps.nth(3)).to_have_text("4 ✗")
+    steps.nth(4).click(); page.wait_for_timeout(450)
+    expect(forward).to_have_text("See result")
+
+    # The result: partial, with a way back to the first open question.
+    forward.click()
+    result = quiz.locator(".qresult-line")
+    expect(result).to_be_focused()
+    expect(result).to_have_text("1 right · 2 of 5 answered")
+    expect(visible()).to_have_count(0)
+    expect(quiz.locator(".qnav")).to_be_hidden()
+    assert quiz.locator('.qstep[aria-current]').count() == 0
+    page.wait_for_timeout(450)
+    quiz.locator(".qresume").click()
+    expect(head.locator(".qcount")).to_have_text("Question 2 of 5")
+
+    # A remote answer repaints without moving the step.
+    page.evaluate("p => { const s = p.get(); p.set({...s, quiz: {...s.quiz, 'steps/s3': 'a'}}); }", page.evaluate_handle("window.readerPage"))
+    expect(steps.nth(2)).to_have_text("3 ✓")
+    expect(head.locator(".qcount")).to_have_text("Question 2 of 5")
+    page.wait_for_timeout(450)
+    for i in (2, 5):
+        steps.nth(i - 1).click(); page.wait_for_timeout(450)
+        visible().get_by_role("button", name=f"Short A{i}", exact=True).click()
+    forward.click()
+    expect(result).to_have_text("4 of 5 right")
+    expect(quiz.locator(".qhint")).to_be_visible()
+    expect(quiz.locator(".qresume")).to_be_hidden()
+
+    # Reload: a finished quiz opens at its result; one with gaps at its first open question.
+    page.reload(); page.wait_for_function("Boolean(window.readerPage)")
+    card.locator(".closeout > summary").click(); quiz.locator("summary").click()
+    expect(result).to_be_visible(); expect(result).to_have_text("4 of 5 right")
+    # A reset elsewhere while the result is shown: back to question 1, nothing answered.
+    page.evaluate("p => { const s = p.get(); p.set({...s, quiz: {}}); }", page.evaluate_handle("window.readerPage"))
+    expect(head.locator(".qcount")).to_have_text("Question 1 of 5")
+    expect(quiz.locator(".qresult")).to_be_hidden()
+    page.evaluate("p => { const s = p.get(); p.set({...s, quiz: {'steps/s1': 'a', 'steps/s2': 'a'}}); }", page.evaluate_handle("window.readerPage"))
+    page.reload(); page.wait_for_function("Boolean(window.readerPage)")
+    card.locator(".closeout > summary").click(); quiz.locator("summary").click()
+    expect(head.locator(".qcount")).to_have_text("Question 3 of 5")
+
+    # One question: no steps, no Previous/Next, no result; Reset stays.
+    single = page.locator('.item[data-id="single"]')
+    single.locator(".closeout > summary").click(); single.locator(".quiz > summary").click()
+    single.locator(".gate button").click()
+    expect(single.locator(".qstep")).to_have_count(0)
+    expect(single.locator(".qnav")).to_have_count(0)
+    expect(single.locator(".qcount")).to_have_count(0)
+    single.get_by_role("button", name="Short A9", exact=True).click()
+    expect(single.locator(".rat")).to_have_text("Correct. Because of 9.")
+    expect(single.get_by_role("button", name="Reset this quiz", exact=True)).to_be_visible()
+
+    # Thirteen questions keep their steps in one row that scrolls sideways, the current step in view.
+    long = page.locator('.item[data-id="long"]')
+    long.locator(".closeout > summary").click(); long.locator(".quiz > summary").click()
+    long.locator(".gate button").click()
+    page.wait_for_timeout(450)
+    long.locator(".qstep").nth(10).click()
+    current = long.locator('.qstep[aria-current="step"]')
+    expect(current).to_have_text("11")
+    assert len({round(c.bounding_box()["y"]) for c in long.locator(".qstep").all()}) == 1, "steps wrap"
+    assert current.evaluate("c => { const r = c.getBoundingClientRect(), s = c.parentElement.getBoundingClientRect(); return r.left >= s.left && r.right <= s.right; }")
+    check_layout(page, 320)
+    site.healthy()
+    context.close()
 
 
 def nav_list():
@@ -1070,8 +1221,11 @@ def navigation(browser):
     card(1).locator(".closeout > summary").click()
     card(1).locator(".quiz > summary").click()
     card(1).locator(".gate button").click()
-    for q in card(1).locator(".q").all():
-        q.locator(".opt").first.click()
+    for _ in range(3):  # one question at a time, past the tap guard after each step
+        card(1).locator(".q:visible .opt").first.click()
+        card(1).locator(".qforward").click()
+        page.wait_for_timeout(450)
+    expect(card(1).locator(".qresult-line")).to_have_text("3 of 3 right")
     card(1).locator(".close1").scroll_into_view_if_needed()
     card(1).locator(".close1").click()
     summary = card(1).locator(".closeout > summary")
@@ -1133,6 +1287,8 @@ def navigation(browser):
     card(1).get_by_role("button", name="Reset this quiz", exact=True).click()
     expect(card(1).locator(".gate")).to_be_hidden()
     expect(card(1).locator(".qbody")).to_be_visible()
+    expect(card(1).locator(".q:visible .qhead")).to_be_focused()  # back to question 1
+    page.wait_for_timeout(450)  # past the tap guard after the reset
 
     # Last unfinished reading: Done, next stays on it and the bar reports completion.
     for i in (1, 5):
@@ -1174,6 +1330,7 @@ if __name__ == "__main__":
         incompatible_sync_stays_local(browser)
         home_link(browser)
         quiz_result_colours(browser)
+        quiz_stepper(browser)
         navigation(browser)
         contents_and_drawer(browser)
         parts_and_deep_links(browser)

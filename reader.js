@@ -212,56 +212,114 @@ function startReader(list, initialState, codec, storage, storageKey, themed) {
     for (const quiz of item.quizzes || []) buildQuiz(item, quiz, card);
   }
 
+  // A quiz shows one question at a time: numbered steps on top, the question with its choices, then
+  // Previous and Next; past the last question, the result. Which question is in view is view state:
+  // in memory on this device, chosen when the quiz opens (the first unanswered one, or the result)
+  // and kept once the reader answers or steps. A quiz with one question has no steps or result.
   function buildQuiz(item, quiz, card) {
     const details = element('details', 'quiz'), summary = element('summary'), scoreLabel = element('span', 'qscore');
-    scoreLabel.setAttribute('aria-live', 'polite');
     summary.append(element('span', '', quiz.title), scoreLabel); details.append(summary);
     const gate = element('div', 'gate'), skip = button('qreset', t('skipRecall'));
     gate.append(element('span', '', t('recallGate')), ' ', skip);
-    skip.addEventListener('click', () => { skipped.add(item.id); paintDrawer(item); body.querySelector('.opt')?.focus({preventScroll: true}); });
-    const body = element('div', 'qbody'), painters = [];
-    for (const question of quiz.questions) {
-      const key = quizKey(quiz, question), row = element('div', 'q'), prompt = element('p', 'qtext', question.prompt);
+    const total = quiz.questions.length, many = total > 1, body = element('div', 'qbody'), painters = [], rows = [];
+    const answered = question => question.choices.some(choice => choice.id === state.quiz[quizKey(quiz, question)]);
+    const firstOpen = () => { const index = quiz.questions.findIndex(question => !answered(question)); return index < 0 ? (many ? total : 0) : index; };
+    let step = firstOpen(), moved = false;
+    const steps = element('div', 'qsteps'), chips = [];
+    for (const [index] of quiz.questions.entries()) {
+      const chip = button('qstep'); chip.addEventListener('click', () => go(index));
+      steps.append(chip); chips.push(chip);
+    }
+    for (const [index, question] of quiz.questions.entries()) {
+      const key = quizKey(quiz, question), row = element('div', 'q'), head = element('div', 'qhead'), prompt = element('p', 'qtext', question.prompt);
       // Choices are announced with their question. IDs are slugs, so the slash keeps quiz/question pairs apart.
       prompt.id = `q/${quiz.id}/${question.id}`; row.setAttribute('role', 'group'); row.setAttribute('aria-labelledby', prompt.id);
-      row.dataset.question = key; row.append(prompt);
+      head.tabIndex = -1; // where stepping lands: "Question 2 of 5" and the prompt
+      if (many) head.append(element('p', 'qcount', t('questionOf', {n: index + 1, total})));
+      head.append(prompt); row.dataset.question = key; row.append(head);
       const buttons = question.choices.map(choice => {
         const option = button('opt', choice.text); option.dataset.choice = choice.id;
         option.addEventListener('click', () => {
-          if (question.choices.some(choice => choice.id === state.quiz[key])) return;
-          state.quiz[key] = choice.id; save(); paintDrawer(item);
+          if (answered(question)) return;
+          state.quiz[key] = choice.id; moved = true; save(); paintDrawer(item);
         });
         row.append(option); return option;
       });
-      const result = element('p', 'rat'); result.setAttribute('role', 'status'); row.append(result); body.append(row);
+      // The one status region for an answer's outcome; present (empty) before answering so it is announced.
+      const result = element('p', 'rat'); result.setAttribute('role', 'status'); row.append(result); body.append(row); rows.push(row);
       painters.push(() => {
-        const chosen = state.quiz[key], answered = question.choices.some(choice => choice.id === chosen);
-        row.classList.toggle('answered', answered);
+        const chosen = state.quiz[key], done = answered(question), right = done && chosen === question.answer;
+        row.classList.toggle('answered', done);
         buttons.forEach((option, index) => {
           const id = question.choices[index].id;
-          option.setAttribute('aria-disabled', String(answered));
-          option.setAttribute('aria-pressed', String(answered && id === chosen)); // which answer was given, without colour
-          option.classList.toggle('correct', answered && id === question.answer);
-          option.classList.toggle('wrong', answered && id === chosen && id !== question.answer);
+          option.setAttribute('aria-disabled', String(done));
+          option.setAttribute('aria-pressed', String(done && id === chosen)); // which answer was given, without colour
+          option.classList.toggle('correct', done && id === question.answer);
+          option.classList.toggle('wrong', done && id === chosen && id !== question.answer);
         });
         const answer = question.choices.find(choice => choice.id === question.answer);
-        const resultText = answered ? `${chosen === question.answer ? t('correct') : t('incorrect', {answer: answer.text})}${question.explanation ? ' ' + question.explanation : ''}` : '';
-        if (result.textContent !== resultText) result.textContent = resultText;
+        const verdict = done ? (right ? t('correct') : t('incorrect', {answer: answer.text})) : '', more = done && question.explanation ? ' ' + question.explanation : '';
+        if (result.textContent !== verdict + more) result.replaceChildren(...(done ? [element('strong', '', verdict), more] : []));
+        row.classList.toggle('right', right);
+        // The step keeps its number and adds the outcome, so a missed question can be found again.
+        const chip = chips[index], chipText = `${index + 1}${done ? (right ? ' ✓' : ' ✗') : ''}`;
+        const chipLabel = t('stepLabel', {n: index + 1, status: t(done ? (right ? 'stepRight' : 'stepWrong') : 'stepOpen')});
+        if (chip.textContent !== chipText) chip.textContent = chipText;
+        if (chip.getAttribute('aria-label') !== chipLabel) chip.setAttribute('aria-label', chipLabel);
+        chip.classList.toggle('right', right); chip.classList.toggle('wrong', done && !right);
       });
     }
+    const nav = element('div', 'qnav'), back = button('qback', t('previous')), forward = button('qforward');
+    back.addEventListener('click', () => go(step - 1));
+    forward.addEventListener('click', () => go(step + 1));
+    nav.append(back, forward);
+    const outcome = element('div', 'qresult'), resultLine = element('p', 'qresult-line'), hint = element('p', 'qhint', t('reviewHint')), resume = button('qresume');
+    resultLine.tabIndex = -1;
+    resume.addEventListener('click', () => go(firstOpen()));
+    outcome.append(resultLine, hint, resume);
     const reset = button('qreset', t('resetQuiz'));
     reset.addEventListener('click', () => {
       for (const question of quiz.questions) codec.clearAnswer(state, quizKey(quiz, question));
-      save(); paintDrawer(item);
-      land(body.hidden ? skip : reset); // the gate may be back, far above the reset button
+      step = 0; moved = true; save(); paintDrawer(item);
+      if (body.hidden) { tapGuardUntil = performance.now() + 400; land(skip); } else reveal(); // the gate may be back
     });
+    if (many) { body.prepend(steps); body.append(nav, outcome); }
     body.append(reset); details.append(gate, body); card.querySelector('.qslot').append(details);
+    details.addEventListener('toggle', () => { if (details.open && !moved) { step = firstOpen(); paint(); } if (details.open) centreStep(); });
+    // Long quizzes scroll their steps sideways: bring the current one to the middle of the row.
+    function centreStep() { const chip = chips[step]; if (many && chip) steps.scrollLeft = chip.offsetLeft - (steps.clientWidth - chip.offsetWidth) / 2; }
+    // The steps take the gate's place, so a second tap there lands on a step, never on a choice: no tap guard.
+    skip.addEventListener('click', () => { skipped.add(item.id); paintDrawer(item); reveal(false); });
+    // Step to a question (or, one past the last, the result).
+    function go(index) { step = Math.max(0, Math.min(index, many ? total : 0)); moved = true; paint(); reveal(); }
+    // Focus what is now in view and bring the steps (or the question) near the top of the screen if they
+    // are not. Content has moved under the finger: a quick second tap must not answer the next question.
+    function reveal(guard = true) {
+      if (guard) tapGuardUntil = performance.now() + 400;
+      const target = step === total ? resultLine : rows[step].querySelector('.qhead'), top = many ? steps : target;
+      target.focus({preventScroll: true}); centreStep();
+      const y = top.getBoundingClientRect().top;
+      if (y < 0 || y > innerHeight / 2) jumpScroll(top, false);
+    }
     function paint() {
       const score = quizScore(quiz, state), gated = !state.recall[item.id]?.trim() && !score.answered && !skipped.has(item.id);
       gate.hidden = !gated; body.hidden = gated;
+      if (step === total && !score.answered) step = 0; // nothing answered (a reset elsewhere): no result to show
       const scoreText = score.answered ? t('score', score) : t('questions', {count: score.total});
       if (scoreLabel.textContent !== scoreText) scoreLabel.textContent = scoreText;
       for (const painter of painters) painter();
+      rows.forEach((row, index) => { row.hidden = index !== step; });
+      if (!many) return;
+      chips.forEach((chip, index) => { if (index === step) chip.setAttribute('aria-current', 'step'); else chip.removeAttribute('aria-current'); });
+      const atResult = step === total, done = !atResult && answered(quiz.questions[step]);
+      nav.hidden = atResult; outcome.hidden = !atResult; back.hidden = step === 0;
+      const forwardText = t(step === total - 1 ? 'seeResult' : done ? 'nextQuestion' : 'skipQuestion');
+      if (forward.textContent !== forwardText) forward.textContent = forwardText;
+      forward.classList.toggle('primary', done);
+      const all = score.answered === total, line = t(all ? 'resultAll' : 'resultPartial', score);
+      if (resultLine.textContent !== line) resultLine.textContent = line;
+      hint.hidden = !all; resume.hidden = all;
+      if (!all) resume.textContent = t('resumeQuiz', {n: firstOpen() + 1});
     }
     quizPainters.set(item.id, [...(quizPainters.get(item.id) || []), paint]);
   }

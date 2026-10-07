@@ -25,7 +25,7 @@ Required properties have no default. Optional arrays default to empty; omitting 
 - Links have descriptive labels and absolute HTTP/HTTPS URLs. The first item link is the main source; companions and alternatives follow. A part's links belong to that part. Avoid a vague label such as “here” when the link will also appear in an export.
 - Parts are individually checkable portions of a reading. They have progress, while recall, notes and quizzes belong to the parent item.
 - An item can have zero, one or several quizzes. Each quiz has at least one question. Each question has 2–26 choices; `answer` is the correct choice's ID, not its position. Only single-choice questions are supported.
-- Quizzes ask for recall first and provide a skip button. Code exercises can be linked but are not executed or graded.
+- Quizzes ask for recall first and provide a skip button. They show one question at a time: numbered steps on top (with ✓ or ✗ once answered), the question with its choices lettered A, B, C…, the outcome and explanation after answering, then Previous and Next; after the last question, the score. A quiz with one question shows just that question. Which question is in view is remembered on the device only while the page is open. Code exercises can be linked but are not executed or graded.
 
 ### Reading time
 
