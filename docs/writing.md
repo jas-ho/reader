@@ -51,6 +51,6 @@ More useful, with `"scope": "chapters 1–3"` and `"minutes": 45`:
 
 1. **Verify the facts first.** Every claim, quote, number and caveat in the prose should come from the source, checked before you polish the wording. When a model writes the prose, give it only these verified notes and tell it to add nothing.
 2. **Have someone else check meaning, claim by claim.** Ideally that is another person or a different model from the writer. Faithfulness errors are subtle: a dropped "only", a hedge moved onto the wrong claim, your inference presented as the source's. Pattern checks do not find them; a reader comparing old and new text does. Send the findings back to the writer rather than patching the text yourself, so the list keeps one voice.
-3. **Check every jump** in a browser at phone size. The phrase must occur on the page, once, and PDF page numbers must exist; also try PDF jumps on a phone, which often ignores them. Pages change, and a broken fragment fails silently.
+3. **Check every link and jump on a phone.** When a source exists in several forms, put the one that reads best on a phone first: an HTML page with text-fragment jumps usually beats a PDF. A jump's phrase must occur on the page once, near the start of the part you mean; label the jump by what the reader finds there, not by the mechanism. Pages change, and a broken fragment fails silently.
 4. **Look at it on a phone.** Read three cards in the assembled page, not in the JSON. Judge tone there.
 5. **Validate:** `node validate.mjs path/to/list.json`.

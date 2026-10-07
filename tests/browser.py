@@ -990,23 +990,19 @@ def quiz_result_colours(browser):
             )
             correct = questions.nth(0).locator(".opt.correct")
             wrong = questions.nth(0).locator(".opt.wrong")
-            resolve = lambda name: page.evaluate(
-                "n => { const d = document.createElement('i'); d.style.color = `var(${n})`;"
-                " document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }",
-                name,
+            # The computed colour a token resolves to, read through a throwaway element.
+            resolve = lambda name, prop="color": page.evaluate(
+                "([n, p]) => { const d = document.createElement('i'); d.style[p] = `var(${n})`;"
+                " document.body.append(d); const c = getComputedStyle(d)[p]; d.remove(); return c; }",
+                [name, prop],
             )
             want_correct = expected[scheme] if theme else resolve("--accent")
             want_wrong = resolve("--signal")
             # Results show as a tint on the row plus a coloured mark.
             assert style(correct, "color", "'::after'") == want_correct, (theme, scheme)
             assert style(wrong, "color", "'::after'") == want_wrong, (theme, scheme)
-            bg = lambda name: page.evaluate(
-                "n => { const d = document.createElement('i'); d.style.backgroundColor = `var(${n})`;"
-                " document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }",
-                name,
-            )
-            assert style(correct, "background-color") == bg("--correct-soft"), (theme, scheme)
-            assert style(wrong, "background-color") == bg("--wrong-soft"), (theme, scheme)
+            assert style(correct, "background-color") == resolve("--correct-soft", "backgroundColor"), (theme, scheme)
+            assert style(wrong, "background-color") == resolve("--wrong-soft", "backgroundColor"), (theme, scheme)
             assert "✓" in style(correct, "content", "'::after'"), "correct mark"
             assert "✗" in style(wrong, "content", "'::after'"), "wrong mark"
             assert style(questions.nth(1).locator(".opt").filter(has_text="A pair"), "content", "'::after'") in ("none", "normal")
