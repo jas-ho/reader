@@ -1193,9 +1193,12 @@ def quiz_stepper(browser):
     # The same while the drawer is closed: it is checked again when the drawer opens.
     page.evaluate("p => { const s = p.get(); p.set({...s, quiz: {}}); }", page.evaluate_handle("window.readerPage"))
     expect(steps.last).to_have_text("13")
-    long.locator(".closeout > summary").click()
+    page.wait_for_timeout(450)  # past the tap guard of the last step
+    drawer = long.locator(".closeout")
+    drawer.locator("> summary").click(); expect(drawer).not_to_have_attribute("open", "")
     page.evaluate("p => { const s = p.get(), quiz = {...s.quiz}; for (let i = 10; i < 23; i++) quiz[`many/s${i}`] = 'a'; p.set({...s, quiz}); }", page.evaluate_handle("window.readerPage"))
-    long.locator(".closeout > summary").click()
+    drawer.locator("> summary").click(); expect(drawer).to_have_attribute("open", "")
+    expect(steps.last).to_be_visible()
     expect(steps.last).to_have_text("13 ✓")
     assert steps.last.evaluate(whole), "current step clipped after reopening"
     check_layout(page, 320)
