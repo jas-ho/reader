@@ -15,7 +15,7 @@ Everything a theme expresses comes from these tokens; `styles.css` keeps only st
 | Token | Meaning |
 | --- | --- |
 | `--ground`, `--surface` | Page background; bar, dialogs and text fields |
-| `--ink`, `--muted` | Main text and the primary button; secondary text, quiet buttons and empty checkboxes |
+| `--ink`, `--muted` | Main text, the primary button and the rule that opens each section; secondary text, quiet buttons and empty checkboxes |
 | `--rule` | Hairlines between readings, borders of fields and dialogs |
 | `--accent`, `--accent-soft` | Links, focus, hover, ticked boxes, the current reading in the contents |
 | `--signal`, `--signal-soft` | Emphasis: the Essential label; the default for quiz errors |

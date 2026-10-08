@@ -34,7 +34,7 @@ button{font:inherit;cursor:pointer}
 .next1:hover,.handoff .tools .primary:hover{background:var(--accent);border-color:var(--accent);color:var(--ground)}
 
 /* ---------- masthead ---------- */
-header.mast{border-bottom:1px solid var(--rule);padding-bottom:1.5rem;margin-bottom:1.5rem}
+header.mast{padding-bottom:.5rem;margin-bottom:1.5rem} /* the first section's rule closes it */
 h1{
   font-family:var(--font-heading);font-weight:500;
   font-size:clamp(2rem,8vw,3rem);line-height:1.05;letter-spacing:-.015em;
@@ -44,12 +44,14 @@ h1{
 .counts{color:var(--muted);font-size:.84rem;margin:.5rem 0 0}
 
 /* ---------- sections ---------- */
-.bucket{margin:0 0 2.5rem}
+/* A section opens with a heavier rule and a larger heading than the hairline and title of a reading. */
+.bucket{margin:0 0 3rem}
 .bucket > h2{
-  font-family:var(--font-heading);font-weight:500;font-size:1.35rem;
+  font-family:var(--font-heading);font-weight:500;font-size:1.5rem;line-height:1.2;
   margin:0;letter-spacing:-.01em;scroll-margin-top:1rem;
+  border-top:2px solid var(--ink);padding-top:.7rem;
 }
-.bucket > .counts{margin:0 0 .3rem}
+.bucket > .counts{margin:.2rem 0 .3rem}
 .bucket > .why-bucket{color:var(--muted);font-size:.92rem;margin:0 0 1rem}
 
 /* ---------- reading ---------- */
