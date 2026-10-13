@@ -13,12 +13,14 @@ body{
 html{scroll-padding-bottom:calc(var(--bar-h,64px) + 1rem)}
 
 a{color:var(--accent);text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:.16em}
-a:hover{text-decoration-color:var(--accent)}
+@media(hover:hover){ a:hover{text-decoration-color:var(--accent)} }
 a:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible,input:focus-visible,h1:focus-visible,h2:focus-visible,.head h3:focus-visible,.qhead:focus-visible,.qresult-line:focus-visible{
   outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--radius)
 }
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
+/* Hover styles apply only where a pointer can hover: a touch screen keeps :hover on the last tapped
+   element, so a control that changes under the finger would keep a stale highlight. */
 /* Controls. Quiet: text only, muted. Primary: the one filled button in a row. Targets are at least 44px,
    except links and the gate's link-styled button inside running text. */
 button{font:inherit;cursor:pointer}
@@ -26,12 +28,12 @@ button{font:inherit;cursor:pointer}
   background:transparent;border:0;color:var(--muted);font-size:.88rem;
   min-height:44px;min-width:44px;padding:.4rem .5rem;display:inline-flex;align-items:center;justify-content:center;gap:.4rem
 }
-.drop:hover,.show:hover,.close1:hover,.copy1:hover,.qreset:hover,.qback:hover,.qforward:hover,.audio-start:hover,.audio-details:hover,#exportBtn:hover,.contents-head button:hover,.handoff .tools button:hover{color:var(--accent)}
+@media(hover:hover){ .drop:hover,.show:hover,.close1:hover,.copy1:hover,.qreset:hover,.qback:hover,.qforward:hover,.audio-start:hover,.audio-details:hover,#exportBtn:hover,.contents-head button:hover,.handoff .tools button:hover{color:var(--accent)} }
 .next1,.handoff .tools .primary{
   background:var(--ink);color:var(--ground);border:1px solid var(--ink);border-radius:var(--radius);
   font-size:.88rem;font-weight:600;min-height:44px;padding:.4rem .9rem
 }
-.next1:hover,.handoff .tools .primary:hover{background:var(--accent);border-color:var(--accent);color:var(--ground)}
+@media(hover:hover){ .next1:hover,.handoff .tools .primary:hover{background:var(--accent);border-color:var(--accent);color:var(--ground)} }
 
 /* ---------- masthead ---------- */
 header.mast{padding-bottom:.5rem;margin-bottom:1.5rem} /* the first section's rule closes it */
@@ -107,9 +109,9 @@ h1{
 details.closeout{margin:0}
 details.closeout > summary{
   font-size:.88rem;color:var(--ink);cursor:pointer;list-style:none;min-height:44px;scroll-margin-top:1rem;
-  display:flex;align-items:flex-start;gap:.45rem;padding:.6rem 6.5rem .4rem 0;line-height:1.4 /* room for Skip, Show, Hide (en, de) */
+  display:flex;align-items:flex-start;gap:.45rem;padding:.75rem 6.5rem .4rem 0;line-height:1.4 /* room for Skip, Show, Hide (en, de); the first line centres on the 44px Skip */
 }
-details.closeout > summary:hover{color:var(--accent)}
+@media(hover:hover){ details.closeout > summary:hover{color:var(--accent)} }
 details.closeout > summary::-webkit-details-marker{display:none}
 .chevron{display:inline-block;font-size:1.25rem;line-height:1;transition:transform .15s;flex:0 0 auto}
 details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"] .chevron{transform:rotate(90deg)}
@@ -150,7 +152,7 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
   flex:none;min-width:44px;min-height:44px;padding:0 .45rem;font-size:.85rem;font-variant-numeric:tabular-nums;
   background:transparent;color:var(--muted);border:1px solid var(--rule);border-radius:var(--radius)
 }
-.qstep:hover{color:var(--accent);border-color:var(--accent)}
+@media(hover:hover){ .qstep:hover{color:var(--accent);border-color:var(--accent)} }
 .qstep.right{color:var(--correct);background:var(--correct-soft)}
 .qstep.wrong{color:var(--wrong);background:var(--wrong-soft)}
 .qstep[aria-current="step"]{border-color:var(--accent);color:var(--ink);font-weight:700}
@@ -189,7 +191,7 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
   color:var(--accent);border:1px solid var(--accent);border-radius:var(--radius);font-weight:600;
   font-size:.88rem;min-height:44px;padding:.4rem .9rem;background:transparent
 }
-.qforward.primary:hover,.qresume:hover{background:var(--accent-soft)}
+@media(hover:hover){ .qforward.primary:hover,.qresume:hover{background:var(--accent-soft)} }
 .rat strong{font-weight:700}
 .qback::before{content:"\2039";content:"\2039" / "";font-size:1.2rem;line-height:1}
 .qforward::after{content:"\203A";content:"\203A" / "";font-size:1.2rem;line-height:1}
@@ -218,15 +220,18 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
 /* The count opens the contents; the list icon says so. */
 .bar .count{display:inline-flex;align-items:center;gap:.4rem;background:transparent;border:0;color:var(--ink);font-weight:600;font-size:1rem;white-space:nowrap;min-height:44px;padding:0 .4rem 0 0}
 .bar .count svg{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.bar .count:hover{color:var(--accent)}
+@media(hover:hover){ .bar .count:hover{color:var(--accent)} }
 .bar .hint{font-size:.88rem;flex:0 0 auto;display:flex;margin-right:auto}
 .bar .hint .jump{white-space:nowrap;background:transparent;border:1px solid var(--ink);border-radius:var(--radius);color:var(--ink);min-height:44px;min-width:44px;padding:0 .8rem}
-.bar .hint .jump:hover{border-color:var(--accent);color:var(--accent)}
+@media(hover:hover){ .bar .hint .jump:hover{border-color:var(--accent);color:var(--accent)} }
 #syncMount > * > button{white-space:nowrap} /* the sync pill only; its panel's text and buttons wrap */
-#exportBtn{font-size:.85rem;padding:.4rem .2rem}
+#exportBtn{font-size:.85rem;padding:.4rem .2rem;gap:.25em} /* the gap is the space before "notes" (a flex item drops its leading space) */
 .bar .tx2{display:none}
 @media(min-width:700px){ .bar .tx2{display:inline} }
-@media(max-width:699px){ body:has(.wrap textarea:focus) .bar{display:none} }
+/* While typing, the on-screen keyboard takes the bottom of the screen; iOS keeps fixed elements on the layout
+   viewport, so the bar would float over the text or stay stranded mid-screen after the keyboard closes. Hide it
+   on narrow screens and on any touch-first device (iPad, phone in landscape); it is laid out afresh on blur. */
+@media(max-width:699px),(pointer:coarse){ body:has(.wrap textarea:focus) .bar{display:none} }
 
 /* ---------- dialogs: handoff and contents ---------- */
 .handoff,.contents{width:min(40rem,calc(100% - 1.5rem));max-height:85vh;max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow)}
@@ -248,7 +253,7 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
 .toc .mark{flex:0 0 1em;color:var(--muted)}
 .toc .name{flex:1;min-width:0}
 .toc .time{color:var(--muted);font-size:.8rem;font-weight:normal;white-space:nowrap}
-.toc:hover .name{color:var(--accent)}
+@media(hover:hover){ .toc:hover .name{color:var(--accent)} }
 .toc[aria-current="true"] .name{font-weight:600;text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:.2em}
 .contents li[data-state] .name{color:var(--done)}
 .contents li[data-state] .time{display:none}

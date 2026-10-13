@@ -1032,7 +1032,7 @@ def quiz_result_colours(browser):
 
 def stepper_list():
     """One reading with a five-question quiz (a tall first question) and one with a single question."""
-    tall = " ".join(["A long choice that wraps over several lines on a phone."] * 6)
+    tall = " ".join(["A long choice that wraps over several lines on a phone."] * 8)
     question = lambda i, text="Short": {"id": f"s{i}", "prompt": f"Question {i}?", "choices": [
         {"id": "a", "text": f"{text} A{i}"}, {"id": "b", "text": f"{text} B{i}"}], "answer": "a",
         "explanation": f"Because of {i}."}
@@ -1371,6 +1371,46 @@ def navigation(browser):
     context.close()
 
 
+def touch_tablet(browser):
+    """A touch tablet: the bar hides while typing, and a tapped control keeps no hover highlight."""
+    context = browser.new_context(viewport={"width": 820, "height": 1180}, has_touch=True, is_mobile=True)
+    page = context.new_page()
+    site = Site(page, stepper_list())
+    site.open()
+    assert page.evaluate("matchMedia('(pointer: coarse)').matches && !matchMedia('(hover: hover)').matches"), "precondition: touch-first"
+    card = page.locator('.item[data-id="five"]')
+    card.locator(".closeout > summary").tap()
+    # Wider than a phone, but the on-screen keyboard still takes the bottom of the screen: no bar while typing.
+    recall = card.locator("textarea").first
+    recall.tap(); recall.type("Recalled")
+    expect(page.locator("#bar")).to_be_hidden()
+    page.evaluate("document.activeElement.blur()")
+    expect(page.locator("#bar")).to_be_visible()
+    assert page.locator("#bar").evaluate("b => Math.abs(b.getBoundingClientRect().bottom - innerHeight) < 1")
+    # Skip lines up with the first line of the drawer's summary.
+    centre = lambda loc: loc.evaluate("e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; }")
+    summary = card.locator(".closeout > summary .summary-text")
+    line = summary.evaluate("e => { const r = e.getClientRects()[0]; return r.top + r.height / 2; }")
+    assert abs(line - centre(card.locator(".item-footer > .drop"))) <= 1.5, "Skip off the summary line"
+    # Tapping Next question leaves :hover on the button that now reads Skip question; it must look quiet.
+    quiz = card.locator(".quiz")
+    quiz.locator("summary").tap()
+    quiz.locator(".q:visible .opt").first.tap()
+    forward = quiz.locator(".qforward")
+    expect(forward).to_have_text("Next question")
+    forward.tap()
+    expect(forward).to_have_text("Skip question")
+    quiet = quiz.locator(".qback").evaluate("b => getComputedStyle(b).color")
+    assert forward.evaluate("b => getComputedStyle(b).color") == quiet, "stale hover colour on a tapped button"
+    assert forward.evaluate("b => getComputedStyle(b).backgroundColor") == "rgba(0, 0, 0, 0)"
+    # "Export all notes": one space-sized gap between the two words.
+    gap = page.evaluate("() => { const [a, b] = document.querySelectorAll('#exportBtn span'); return b.getBoundingClientRect().left - a.getBoundingClientRect().right; }")
+    assert 2 <= gap <= 5, gap
+    check_layout(page, 820)
+    assert not site.errors, site.errors
+    context.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
@@ -1384,6 +1424,7 @@ if __name__ == "__main__":
         home_link(browser)
         quiz_result_colours(browser)
         quiz_stepper(browser)
+        touch_tablet(browser)
         navigation(browser)
         contents_and_drawer(browser)
         parts_and_deep_links(browser)

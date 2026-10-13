@@ -28,7 +28,7 @@ Everything a theme expresses comes from these tokens; `styles.css` keeps only st
 
 Set semantic and derived tokens on `:root` like the palette; they resolve there. Quiz results also show a ✓ or ✗ mark, so they never depend on colour alone.
 
-Preview long titles and notes at phone and desktop widths. Check keyboard focus, contrast and quiz feedback in both color themes. Edit `styles.css` to change the layout.
+Put `:hover` styles inside `@media(hover:hover)`: a touch screen keeps `:hover` on the last tapped element, so a control that changes under the finger would keep its highlight (a unit test enforces this for `styles.css`). Preview long titles and notes at phone and desktop widths. Check keyboard focus, contrast and quiz feedback in both color themes. Edit `styles.css` to change the layout.
 
 The reader follows the system color preference. The `data-theme` selectors support a toggle if you add one; the reader does not set that attribute itself.
 

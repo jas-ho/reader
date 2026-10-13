@@ -53,3 +53,11 @@ test('every token styles.css uses is declared in theme.css or has a fallback', (
   const missing = [...read('styles.css').matchAll(/var\((--[\w-]+)\s*(,)?/g)].filter(m => !m[2] && !declared.has(m[1])).map(m => m[1]);
   assert.deepEqual([...new Set(missing)], []);
 });
+
+// A touch screen keeps :hover on the last tapped element, so a hover style would stick to a control
+// that changed under the finger (Next question turning into Skip question). Hover styles live only in
+// @media(hover:hover) blocks.
+test('styles.css applies hover styles only where a pointer can hover', () => {
+  const css = read('styles.css').replace(/@media\s*\(hover:\s*hover\)\s*\{([^{}]*\{[^{}]*\})*\s*\}/g, '');
+  assert.deepEqual([...css.matchAll(/([^{}]*:hover[^{}]*)\{/g)].map(m => m[1].trim()), []);
+});
