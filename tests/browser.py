@@ -1370,6 +1370,17 @@ def navigation(browser):
     check_layout(page, 320)
     context.close()
 
+    # 320 px, English, with a sync pill: Export all stays on one line and the row fits.
+    context = browser.new_context(viewport={"width": 320, "height": 640})
+    page = context.new_page()
+    site = Site(page, nav_list())
+    site.open()
+    page.evaluate("document.querySelector('#syncMount').append(Object.assign(document.createElement('button'), {textContent: 'sync ○off'}))")
+    assert page.locator("#exportBtn").evaluate("b => b.getBoundingClientRect().height") <= 45, "Export all wraps"
+    assert page.locator(".barrow").evaluate("r => r.scrollWidth <= r.clientWidth"), "bar row overflows"
+    check_layout(page, 320)
+    context.close()
+
 
 def touch_tablet(browser):
     """A touch tablet: the bar hides while typing, and a tapped control keeps no hover highlight."""

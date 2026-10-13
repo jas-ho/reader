@@ -225,7 +225,7 @@ details.closeout[open] > summary > .chevron,.audio-details[aria-expanded="true"]
 .bar .hint .jump{white-space:nowrap;background:transparent;border:1px solid var(--ink);border-radius:var(--radius);color:var(--ink);min-height:44px;min-width:44px;padding:0 .8rem}
 @media(hover:hover){ .bar .hint .jump:hover{border-color:var(--accent);color:var(--accent)} }
 #syncMount > * > button{white-space:nowrap} /* the sync pill only; its panel's text and buttons wrap */
-#exportBtn{font-size:.85rem;padding:.4rem .2rem;gap:.25em} /* the gap is the space before "notes" (a flex item drops its leading space) */
+#exportBtn{font-size:.85rem;padding:.4rem .2rem;gap:.25em;white-space:nowrap} /* the gap is the space before "notes" (a flex item drops its leading space) */
 .bar .tx2{display:none}
 @media(min-width:700px){ .bar .tx2{display:inline} }
 /* While typing, the on-screen keyboard takes the bottom of the screen; iOS keeps fixed elements on the layout
