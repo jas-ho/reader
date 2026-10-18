@@ -1,5 +1,5 @@
 import {translator, translateShell, formatMinutes} from './locale.js';
-import {allItems, itemMinutes, validateList, validateConfig, validateCompatibility} from './content.js';
+import {allItems, itemMinutes, validateList, validateConfig, validateCompatibility, validateCompanions, resolveCompanions} from './content.js';
 import {createCodec, readState, quizKey, quizScore, itemScore, isClosed} from './state.js';
 import {renderList, summarise, element, button} from './render.js';
 import {buildExport} from './export.js';
@@ -21,6 +21,7 @@ async function boot() {
   const config = await readJSON('config.json'); requireValid(validateConfig(config), 'config.json');
   language = config.language || 'en'; t = translator(language); translateShell(document, language);
   const list = await readJSON(config.content); requireValid(validateList(list), config.content);
+  requireValid(validateCompanions(list, config), config.content); resolveCompanions(list, baseURL);
   const mapping = config.compatibility ? await readJSON(config.compatibility) : {};
   requireValid(validateCompatibility(mapping, list), config.compatibility || 'compatibility');
   let storage;

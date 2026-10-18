@@ -8,6 +8,28 @@ export const allItems = list => list.sections.flatMap(section => section.items);
 export const quizKey = (quiz, question) => `${quiz.id}/${question.id}`;
 // The page a `#page=N` link opens on: the PDF's own page index (1 = first page), not its printed
 // page label. Phones often ignore the fragment, so the reader shows the number. Null otherwise.
+// A link into a file bundled with the instance (config `files`): a safe relative path with an
+// optional #fragment, e.g. "translations/report-en.html#p-13". Anything with a scheme or a
+// leading slash is not one.
+export function companionPath(url) {
+  if (typeof url !== 'string' || /^[a-z][a-z0-9+.-]*:/i.test(url)) return null;
+  const [path, fragment = ''] = url.split(/#(.*)/s);
+  return safeRelativePath(path) && !/[\x00-\x20#]/.test(fragment) ? path.replace(/^(?:\.\/)+/, '') : null;
+}
+// Every item and part link with its jumps, for checks and rewrites that treat them alike.
+export const allLinks = list => allItems(list).flatMap(item => [...(item.links || []), ...(item.parts || []).flatMap(part => part.links || [])])
+  .flatMap(link => [link, ...(link.jumps || [])]);
+// Links into bundled files must name a file the config lists; run after both validate.
+export function validateCompanions(list, config) {
+  const files = new Set((config.files || []).map(name => name.replace(/^(?:\.\/)+/, '')));
+  const missing = new Set(allLinks(list).map(link => companionPath(link.url)).filter(path => path && !files.has(path)));
+  return [...missing].map(path => `config.files: missing ${path}, which the list links to`);
+}
+// Resolve links into bundled files against the folder the reader was loaded from (a release),
+// so pages, PDF labels and exports all see absolute URLs.
+export function resolveCompanions(list, base) {
+  for (const link of allLinks(list)) if (companionPath(link.url)) link.url = new URL(link.url, base).href;
+}
 export function pdfPage(url) {
   const hash = String(url).split('#')[1];
   const page = hash?.split('&').find(param => param.startsWith('page='))?.slice(5);
@@ -52,11 +74,12 @@ export function validateList(list) {
   function minutes(value, path) {
     if (value !== undefined && !(Number.isInteger(value) && value >= 1 && value <= 1000)) error(path, 'expected whole minutes from 1 to 1000');
   }
-  function url(value, path, protocols = ['http:', 'https:']) {
+  function url(value, path, protocols = ['http:', 'https:'], companion = false) {
+    if (companion && companionPath(value)) return;
     try {
       const parsed = new URL(value);
       if (typeof value !== 'string' || !protocols.includes(parsed.protocol) || parsed.username || parsed.password) throw Error();
-    } catch { error(path, `expected an absolute ${protocols.map(protocol => protocol.slice(0, -1).toUpperCase()).join('/')} URL without credentials`); }
+    } catch { error(path, `expected an absolute ${protocols.map(protocol => protocol.slice(0, -1).toUpperCase()).join('/')} URL without credentials${companion ? ', or a relative path to a file in config.files' : ''}`); }
   }
   // A link may name places inside its source (`jumps`): sections, pages or quoted passages,
   // typically text-fragment (#:~:text=) or #page= URLs. One level deep.
@@ -65,7 +88,7 @@ export function validateList(list) {
       const p = `${path}[${index}]`;
       if (!object(link, p, nested ? ['label', 'url'] : ['label', 'url', 'jumps'])) return;
       text(link.label, `${p}.label`, true);
-      url(link.url, `${p}.url`);
+      url(link.url, `${p}.url`, undefined, true);
       if (!nested) links(link.jumps, `${p}.jumps`, true);
     });
   }
@@ -144,10 +167,14 @@ function safeHomeURL(url) {
 export function validateConfig(config) {
   if (!isRecord(config)) return ['config: expected an object'];
   const errors = [];
-  for (const field of Object.keys(config)) if (!['content', 'language', 'theme', 'compatibility', 'storageKey', 'sync', 'homeLink'].includes(field)) errors.push(`config.${field}: unknown field`);
+  for (const field of Object.keys(config)) if (!['content', 'language', 'theme', 'compatibility', 'files', 'storageKey', 'sync', 'homeLink'].includes(field)) errors.push(`config.${field}: unknown field`);
   for (const field of ['content', 'theme', 'compatibility']) {
     if (field !== 'content' && config[field] === undefined) continue;
     if (!safeRelativePath(config[field])) errors.push(`config.${field}: expected a relative file path without traversal`);
+  }
+  if (config.files !== undefined) {
+    const names = Array.isArray(config.files) ? config.files.map(name => typeof name === 'string' ? name.replace(/^(?:\.\/)+/, '') : name) : null;
+    if (!names || names.some(name => !safeRelativePath(name)) || new Set(names).size !== names.length) errors.push('config.files: expected unique relative file paths without traversal');
   }
   if (config.language !== undefined && !['en', 'de'].includes(config.language)) errors.push('config.language: expected en or de');
   if (config.storageKey !== undefined && (typeof config.storageKey !== 'string' || !config.storageKey.trim())) errors.push('config.storageKey: expected a nonempty string');

@@ -4,7 +4,9 @@ import {
   allItems,
   itemMinutes,
   pdfPage,
+  resolveCompanions,
   totalMinutes,
+  validateCompanions,
   validateCompatibility,
   validateConfig,
   validateList,
@@ -596,4 +598,29 @@ test('scope says what to read: optional text on items and parts, exported with i
   assert.ok(markdown.includes('  What to read (curator): pages 4 to 6'), markdown);
   item.scope = 7; item.parts[0].scope = false;
   assert.deepEqual(validateList(list).map(e => e.split(':')[0]).sort(), ['list.sections[0].items[0].parts[0].scope', 'list.sections[0].items[0].scope'].sort());
+});
+
+test('links into bundled files are relative paths listed in config.files and resolve against the release', () => {
+  const list = minimalList();
+  const item = allItems(list)[0];
+  item.links = [{ label: 'Original', url: 'https://example.org/report.pdf#page=13', jumps: [{ label: 'Table', url: 'https://example.org/report.pdf#page=15' }] },
+    { label: 'English translation', url: 'translations/report-en.html', jumps: [{ label: 'Page 13', url: './translations/report-en.html#p-13' }] }];
+  assert.deepEqual(validateList(list), []);
+  assert.deepEqual(validateCompanions(list, { content: 'list.json', files: ['translations/report-en.html'] }), []);
+  errorsAt(validateCompanions(list, { content: 'list.json' }), 'config.files');
+  for (const url of ['../secret.html', '/translations/report-en.html', '//evil.example/x', 'javascript:alert(1)', 'a/%2e%2e/b.html', 'a b.html', 'x.html?q=1']) {
+    item.links[1].url = url;
+    errorsAt(validateList(list), 'links[1].url');
+  }
+  item.links[1].url = 'translations/report-en.html';
+  resolveCompanions(list, new URL('https://reader.example/releases/r1/'));
+  assert.equal(item.links[0].url, 'https://example.org/report.pdf#page=13');
+  assert.equal(item.links[0].jumps[0].url, 'https://example.org/report.pdf#page=15');
+  assert.equal(item.links[1].url, 'https://reader.example/releases/r1/translations/report-en.html');
+  assert.equal(item.links[1].jumps[0].url, 'https://reader.example/releases/r1/translations/report-en.html#p-13');
+});
+
+test('config.files lists unique safe relative paths', () => {
+  assert.deepEqual(validateConfig({ content: 'list.json', files: ['translations/a.html', './b.html'] }), []);
+  for (const files of ['a.html', ['../a.html'], ['/a.html'], ['a.html', './a.html'], [1]]) errorsAt(validateConfig({ content: 'list.json', files }), 'config.files');
 });

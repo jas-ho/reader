@@ -453,7 +453,17 @@ def immutable_release_root(browser):
     context = browser.new_context()
     page = context.new_page()
     release = "/releases/test-id/"
-    site = Site(page, book_club(), prefix=release, root_entry=True)
+    data = book_club()
+    data["sections"][0]["items"][0]["links"] = [
+        {"label": "Original", "url": "https://example.org/book.pdf#page=3"},
+        {
+            "label": "English translation",
+            "url": "translations/book-en.html",
+            "jumps": [{"label": "Page 3", "url": "translations/book-en.html#p-3"}],
+        },
+    ]
+    site = Site(page, data, prefix=release, root_entry=True)
+    site.config["files"] = ["translations/book-en.html"]
     site.open()
     expect(page.locator(".item")).to_have_count(1)
     assert page.url == ORIGIN + "/", "the public entry URL must stay unchanged"
@@ -470,6 +480,12 @@ def immutable_release_root(browser):
     text = page.locator("#handoffText").input_value()
     assert "A note through an immutable release" in text
     assert "Bring a physical book" in text
+    translation = ORIGIN + release + "translations/book-en.html"
+    expect(card.locator('a:text-is("English translation")')).to_have_attribute("href", translation)
+    expect(card.locator('a:text-is("Page 3")')).to_have_attribute("href", translation + "#p-3")
+    expect(card.locator('a:text-is("Original")')).to_have_attribute("href", "https://example.org/book.pdf#page=3")
+    assert f"English translation: {translation}" in text
+    assert f"Page 3: {translation}#p-3" in text
     assert download_text(page) == text
     for asset in (
         "reader.js",

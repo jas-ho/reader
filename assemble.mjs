@@ -4,7 +4,7 @@ import { realpathSync } from "node:fs";
 import { lstat, mkdir, readFile, realpath, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { validateList, validateConfig, validateCompatibility } from "./content.js";
+import { validateList, validateConfig, validateCompatibility, validateCompanions } from "./content.js";
 
 import { translateShellHTML } from "./locale.js";
 
@@ -93,7 +93,7 @@ export async function assemble({ instanceDir, outDir, engineDir = ENGINE }) {
   files.set("config.json", configBytes);
   files.set("index.html", Buffer.from(translateShellHTML(files.get("index.html").toString("utf8"), config.language)));
 
-  const references = [config.content, config.theme, config.compatibility].filter(Boolean).map(normalizedReference);
+  const references = [config.content, config.theme, config.compatibility, ...(config.files || [])].filter(Boolean).map(normalizedReference);
   for (const name of references) {
     if (reserved.has(name) || [...reserved].some(asset => name.startsWith(`${asset}/`))) {
       throw new Error(`Instance file collides with a reader asset: ${name}`);
@@ -103,6 +103,7 @@ export async function assemble({ instanceDir, outDir, engineDir = ENGINE }) {
   }
   const list = parseJSON(files.get(normalizedReference(config.content)), config.content);
   valid(validateList(list), config.content);
+  valid(validateCompanions(list, config), config.content);
   if (config.compatibility) {
     const compatibility = parseJSON(files.get(normalizedReference(config.compatibility)), config.compatibility);
     valid(validateCompatibility(compatibility, list), config.compatibility);

@@ -229,3 +229,23 @@ test('a reader directory inside a different Git repository never inherits its co
   await assert.rejects(assemble({ ...f, outDir: pinnedOutput }), /does not match/);
   await absent(pinnedOutput);
 });
+
+test('copies config.files and refuses links into files the config does not list', async () => {
+  const f = await fixture();
+  await mkdir(path.join(f.instanceDir, 'translations'));
+  await writeFile(path.join(f.instanceDir, 'translations/report-en.html'), '<!doctype html><title>Translation</title>');
+  await writeFile(path.join(f.instanceDir, 'translations/draft.html'), 'synthetic unlisted draft');
+  const list = minimal();
+  list.sections[0].items[0].links = [{ label: 'English translation', url: 'translations/report-en.html#p-2' }];
+  await writeFile(path.join(f.instanceDir, 'list.json'), JSON.stringify(list));
+  await setConfig(f, { content: 'list.json', files: ['./translations/report-en.html'] });
+  await assemble(f);
+  assert.equal(await readFile(path.join(f.outDir, 'translations/report-en.html'), 'utf8'), '<!doctype html><title>Translation</title>');
+  await absent(path.join(f.outDir, 'translations/draft.html'));
+  const unlisted = await fixture();
+  await writeFile(path.join(unlisted.instanceDir, 'list.json'), JSON.stringify(list));
+  await assert.rejects(assemble(unlisted), /config.files: missing translations\/report-en.html/);
+  const clash = await fixture();
+  await setConfig(clash, { content: 'list.json', files: ['reader.js'] });
+  await assert.rejects(assemble(clash), /collides/);
+});
