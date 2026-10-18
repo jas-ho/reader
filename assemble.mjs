@@ -16,6 +16,20 @@ const ENGINE = path.dirname(fileURLToPath(import.meta.url));
 
 const normalizedReference = value => value.replace(/^(?:\.\/)+/, "");
 
+// Bundled pages share the reader's origin, so a script in one could read notes and the sync
+// key. A text check, not a sanitizer: it catches a pasted or generated page that carries code.
+const MARKUP = /\.(?:html?|xhtml|svg|xml)$/i;
+// Patterns look inside tags only, so prose such as "one = eins" or a mention of javascript: passes.
+const ACTIVE = [/<(?:[\w.-]+:)?(?:script|iframe|object|embed)\b/i, /<[^>]*[\s/"']on[a-z]+\s*=/i, /<[^>]*javascript:/i];
+function refuseActiveMarkup(name, bytes) {
+  if (!MARKUP.test(name)) return;
+  let text;
+  // UTF-16 (BOM) would hide every pattern from a UTF-8 read, so checked markup must be UTF-8.
+  try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { text = null; }
+  if (text === null || text.includes("\0")) throw new Error(`Bundled markup must be UTF-8 text: ${name}`);
+  if (ACTIVE.some(pattern => pattern.test(text))) throw new Error(`Bundled file contains scripts or embedded content: ${name}`);
+}
+
 function inside(parent, child) {
   const relative = path.relative(parent, child);
   return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative));
@@ -93,13 +107,15 @@ export async function assemble({ instanceDir, outDir, engineDir = ENGINE }) {
   files.set("config.json", configBytes);
   files.set("index.html", Buffer.from(translateShellHTML(files.get("index.html").toString("utf8"), config.language)));
 
-  const references = [config.content, config.theme, config.compatibility, ...(config.files || [])].filter(Boolean).map(normalizedReference);
+  const bundled = new Set((config.files || []).map(normalizedReference));
+  const references = [config.content, config.theme, config.compatibility, ...bundled].filter(Boolean).map(normalizedReference);
   for (const name of references) {
     if (reserved.has(name) || [...reserved].some(asset => name.startsWith(`${asset}/`))) {
       throw new Error(`Instance file collides with a reader asset: ${name}`);
     }
     if (files.has(name)) throw new Error(`Instance file has more than one role: ${name}`);
     files.set(name, await safeFile(instance, name));
+    if (bundled.has(name)) refuseActiveMarkup(name, files.get(name));
   }
   const list = parseJSON(files.get(normalizedReference(config.content)), config.content);
   valid(validateList(list), config.content);

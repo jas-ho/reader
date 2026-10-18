@@ -245,6 +245,29 @@ test('copies config.files and refuses links into files the config does not list'
   const unlisted = await fixture();
   await writeFile(path.join(unlisted.instanceDir, 'list.json'), JSON.stringify(list));
   await assert.rejects(assemble(unlisted), /config.files: missing translations\/report-en.html/);
+  const bundle = async (name, bytes) => {
+    const f = await fixture();
+    await mkdir(path.join(f.instanceDir, 'translations'));
+    await writeFile(path.join(f.instanceDir, 'translations', name), bytes);
+    const linked = minimal();
+    linked.sections[0].items[0].links = [{ label: 'Page', url: `translations/${name}` }];
+    await writeFile(path.join(f.instanceDir, 'list.json'), JSON.stringify(linked));
+    await setConfig(f, { content: 'list.json', files: [`./translations/${name}`] });
+    return f;
+  };
+  for (const active of ['<script>alert(1)</script>', '<img src=x onerror="alert(1)">', '<svg/onload="alert(1)">', '<img src="x"onerror="alert(1)">',
+    '<a href="javascript:alert(1)">x</a>', '<iframe src="https://example.org"></iframe>', '<object data="x"></object>', '<s:script>alert(1)</s:script>']) {
+    const f = await bundle('report-en.HTML', `<!doctype html><p>Text</p>${active}`);
+    await assert.rejects(assemble(f), /scripts or embedded content/, active);
+    await absent(f.outDir);
+  }
+  for (const encoding of ['utf16le', 'utf16be']) {
+    const text = Buffer.from('\ufeff<script>alert(1)</script>', 'utf16le');
+    if (encoding === 'utf16be') text.swap16();
+    await assert.rejects(assemble(await bundle('report-en.html', text)), /must be UTF-8/);
+  }
+  const prose = await bundle('report-en.html', '<!doctype html><p>Vokabeln: one = eins. Links starting with javascript: are refused.</p>');
+  await assemble(prose);
   const clash = await fixture();
   await setConfig(clash, { content: 'list.json', files: ['reader.js'] });
   await assert.rejects(assemble(clash), /collides/);
